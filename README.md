@@ -11,5 +11,9 @@ DUE serves as an educational tool for classroom instruction, enabling students a
 DUE, along with all its dependencies, can be easily installed through running the 'setup.py' file:
 
 ``` sh
-$ python setup install
+$ python setup.py install
 ```
+
+## Demonstration examples
+
+We provide a wide range of examples to show the usage and customizability of DUE.  inside 'examples' for detailed 
