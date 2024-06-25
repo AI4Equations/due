@@ -1,0 +1,26 @@
+seed: 0
+
+dtype: double
+
+data:
+    problem_type: ode # pde
+    nbursts: 10 # number of bursts selected randomly from every trajectory
+    memory: 10 #nonnegative integer
+    multi_steps: 10 # positive integer
+    problem_dim: 1
+
+network:
+    depth: 3 # number of hidden layers
+    width: 10 # number of neurons
+    activation: "gelu"
+
+training:
+    device: "cpu" #"cpu", "cuda"
+    epochs: 500
+    batch_size: 5
+    optimizer: "adam"
+    scheduler: "cosine" # "cosine"， "none"， "cyclic_cosine"
+    learning_rate: 0.001
+    verbose: 10 # print loss every verbose epochs
+    loss: "mse"
+    save_path: "./model"

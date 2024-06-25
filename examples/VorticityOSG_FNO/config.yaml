@@ -1,0 +1,29 @@
+seed: 0
+
+dtype: single
+
+data:
+    problem_type: "2d_regular" #  # "1d_regular", "2d_regular", "1d_irregular", "2d_irregular"
+    nbursts: 25 # number of bursts selected randomly from every trajectory
+    problem_dim: 1
+    multiscale: False
+
+network:
+    modes1: 12
+    modes2: 12
+    n_blocks: 4
+    encode_dim: 20
+    activation: "gelu"
+
+training:
+    device: "cuda" #"cpu", "cuda"
+    epochs: 500
+    batch_size: 20
+    sg_pairing: 1
+    sg_weight: 1.0
+    optimizer: "adam"
+    scheduler: "cosine" # "cosine"， "none"， "cyclic_cosine"
+    learning_rate: 0.001
+    verbose: 1 # print loss every verbose epochs
+    loss: "rel_l2"
+    save_path: "./model"
