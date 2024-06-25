@@ -1,0 +1,27 @@
+seed: 0
+
+dtype: double
+
+data:
+    problem_type: ode_osg # pde
+    nbursts: 1 # number of bursts selected randomly from every trajectory
+    problem_dim: 3
+    multiscale: True
+
+network:
+    depth: 3 # number of hidden layers
+    width: 60 # number of neurons
+    activation: "gelu"
+
+training:
+    device: "cuda" #"cpu", "cuda"
+    epochs: 10000
+    batch_size: 500
+    sg_pairing: 1
+    sg_weight: 1.0
+    optimizer: "adam"
+    scheduler: "cosine" # "cosine"， "none"， "cyclic_cosine"
+    learning_rate: 0.001
+    verbose: 10 # print loss every verbose epochs
+    loss: "mse"
+    save_path: "./model"

@@ -1,0 +1,30 @@
+seed: 0 # random selection and shuffling
+
+dtype: "single"
+
+data:
+    nbursts: 10 # number of bursts selected randomly from every trajectory
+    memory: 0 #nonnegative integer
+    multi_steps: 0 # positive integer
+    problem_type: "2d_irregular" # "1d_regular", "2d_regular", "1d_irregular", "2d_irregular"
+    problem_dim: 3
+
+network:
+    encoding_dim: 256
+    n_head: 2
+    n_blocks: 4
+    locality_encoder: 0.02
+    locality_decoder: 0.02
+    activation: "gelu"
+    
+
+training:
+    device: "cuda" #"cpu", "cuda"
+    epochs: 500
+    batch_size: 50
+    optimizer: "adam"
+    scheduler: "cosine" # "cosine"， "none"， "cyclic_cosine"
+    learning_rate: 0.001
+    verbose: 1 # print loss every verbose epochs
+    loss: "rel_l2_pde"
+    save_path: "./model"
