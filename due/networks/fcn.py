@@ -116,9 +116,6 @@ class gresnet(affine):
             param.requires_grad = False
         
         self.mlp = mlp(config)
-        self.depth = self.mlp.depth
-        self.width = self.mlp.width
-        self.activation = self.mlp.activation
     
     def forward(self, x):
         return self.prior(x) + self.mlp(x)
