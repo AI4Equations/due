@@ -15,7 +15,7 @@ DUE is developped based on the following works
 - Modeling ODEs and DAEs by generalized residual neural networks (gResNet) [[J. Comput. Phys.](https://doi.org/10.1016/j.jcp.2021.110362)]
 - Modeling unknown PDEs and integro-differential equations (IDE) in nodal space [[J. Comput. Phys.](https://doi.org/10.1016/j.jcp.2021.110782)]
 - Learning operators in semigroup via deep learning [[J. Comput. Phys.](https://doi.org/10.1016/j.jcp.2023.112498)]
-- Learning stochastic dynamical system via flow map operator [[J. Comput. Phys.](https://doi.org/10.1016/j.jcp.2024.112984)]
+- Modeling unknown stochastic differential equations (SDE) via flow map operator [[J. Comput. Phys.](https://doi.org/10.1016/j.jcp.2024.112984)]
 - Learning operators in PDEs by Position-induced Transformers [[ICML 2024](https://doi.org/10.48550/arXiv.2405.09285)]
 
 ## Installation
