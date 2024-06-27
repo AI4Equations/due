@@ -6,14 +6,12 @@ from ..utils import get_activation
 class affine(nn):
     def __init__(self, vmin, vmax, config):
         super().__init__()
-
+        self.vmin = torch.from_numpy(vmin)
+        self.vmax = torch.from_numpy(vmax)
         self.dtype = config["dtype"]
-        self.output_dim = config["problem_dim"]
         self.memory = config["memory"]
-        # if self.memory > 0:
-        #     raise ValueError("Not yet implemented for partially observed systems!")
+        self.output_dim = config["problem_dim"]
         self.input_dim = self.output_dim * (config["memory"] + 1)
-        ################        
         
         self.set_seed(config["seed"])
         if self.dtype == "double":
@@ -26,6 +24,34 @@ class affine(nn):
             exit()
     def forward(self, x):
         return self.mDMD(x)
+
+    def predict(self, x, steps, device):
+        """
+        This function is NOT used for training. It is for testing and predicting trajectories given initial states which are not seen during training.
+        
+        x : unnormalized intial conditions. Numpy array (N, output_dim, memory+1)
+        output: unnormalized prediction at the future steps. Numpy array (N, output_dim, steps+1)
+        """
+        
+        self.to(device)
+        assert x.shape[1] == self.output_dim
+        assert x.shape[2] == self.memory + 1
+
+        xx    = torch.from_numpy(x)
+        xx    = 2 * (xx - 0.5*(self.vmax+self.vmin) ) / (self.vmax-self.vmin)
+        xx    = xx.to(device)
+        
+        yy  = torch.zeros(xx.shape[0], self.output_dim, steps+self.memory+1, device=device, dtype=xx.dtype)#torch.zeros_like(y).to(self.device)
+        yy[...,:self.memory+1] = xx
+        self.eval()
+        with torch.no_grad():
+            for t in range(steps):
+                yy[..., self.memory+1+t] = self.forward(yy[..., t:self.memory+1+t].permute(0,2,1).reshape(-1,self.input_dim))
+
+        yy = yy.cpu()        
+        yy = yy * 0.5*(self.vmax-self.vmin) + 0.5*(self.vmax+self.vmin)
+        
+        return yy.numpy()
 
 class mlp(nn):
     """Fully-connected neural network."""
@@ -71,175 +97,32 @@ class mlp(nn):
         x = self.layers[-1](x)
         return x
         
-class resnet(nn):
+class resnet(affine):
 
     def __init__(self, vmin, vmax, config):
-        super().__init__()
-        
-        self.vmin = torch.from_numpy(vmin)
-        self.vmax = torch.from_numpy(vmax)
+        super().__init__(vmin, vmax, config)
         
         self.mlp = mlp(config)
-        self.dtype = self.mlp.dtype
-        self.memory = self.mlp.memory
-        self.input_dim = self.mlp.input_dim
-        self.output_dim = self.mlp.output_dim
-        self.depth = self.mlp.depth
-        self.width = self.mlp.width
-        self.activation = self.mlp.activation
     
     def forward(self, x):
         return self.mlp(x) + x[...,-self.output_dim:]
-        
-    def predict(self, x, steps, device):
-        """
-        This function is NOT used for training. It is for testing and predicting trajectories given initial states which are not seen during training.
-        
-        x : unnormalized intial conditions. Numpy array (N, output_dim, memory+1)
-        output: unnormalized prediction at the future steps. Numpy array (N, output_dim, steps+1)
-        """
-        
-        self.to(device)
-        assert x.shape[1] == self.output_dim
-        assert x.shape[2] == self.memory + 1
 
-        xx    = torch.from_numpy(x)
-        xx    = 2 * (xx - 0.5*(self.vmax+self.vmin) ) / (self.vmax-self.vmin)
-        xx    = xx.to(device)
-        
-        yy  = torch.zeros(xx.shape[0], self.output_dim, steps+self.memory+1, device=device, dtype=xx.dtype)#torch.zeros_like(y).to(self.device)
-        yy[...,:self.memory+1] = xx
-        self.eval()
-        with torch.no_grad():
-            for t in range(steps):
-                yy[..., self.memory+1+t] = self.forward(yy[..., t:self.memory+1+t].permute(0,2,1).reshape(-1,self.input_dim))
-
-        yy = yy.cpu()        
-        yy = yy * 0.5*(self.vmax-self.vmin) + 0.5*(self.vmax+self.vmin)
-        
-        return yy.numpy()
-
-class gresnet(nn):
-
+class gresnet(affine):
     def __init__(self, prior, vmin, vmax, config):
-        super().__init__()
+        super().__init__(vmin, vmax, config)
         
         self.prior = prior
         for param in self.prior.parameters():
             param.requires_grad = False
-        self.vmin  = torch.from_numpy(vmin)
-        self.vmax  = torch.from_numpy(vmax)
         
         self.mlp = mlp(config)
-        self.dtype = self.mlp.dtype
-        self.memory = self.mlp.memory
-        self.input_dim = self.mlp.input_dim
-        self.output_dim = self.mlp.output_dim
         self.depth = self.mlp.depth
         self.width = self.mlp.width
         self.activation = self.mlp.activation
     
     def forward(self, x):
         return self.prior(x) + self.mlp(x)
-        
-    def predict(self, x, steps, device):
-        """
-        This function is NOT used for training. It is for testing and predicting trajectories given initial states which are not seen during training.
-        
-        x : unnormalized intial conditions. Numpy array (N, output_dim, memory+1)
-        output: unnormalized prediction at the future steps. Numpy array (N, output_dim, steps+1)
-        """
-        
-        self.to(device)
-        assert x.shape[1] == self.output_dim
-        assert x.shape[2] == self.memory + 1
 
-        xx    = torch.from_numpy(x)
-        xx    = 2 * (xx - 0.5*(self.vmax+self.vmin) ) / (self.vmax-self.vmin)
-        xx    = xx.to(device)
-        
-        yy  = torch.zeros(xx.shape[0], self.output_dim, steps+self.memory+1, device=device, dtype=xx.dtype)#torch.zeros_like(y).to(self.device)
-        yy[...,:self.memory+1] = xx
-        self.eval()
-        with torch.no_grad():
-            for t in range(steps):
-                yy[..., self.memory+1+t] = self.forward(yy[..., t:self.memory+1+t].permute(0,2,1).reshape(-1,self.input_dim))
-
-        yy = yy.cpu()        
-        yy = yy * 0.5*(self.vmax-self.vmin) + 0.5*(self.vmax+self.vmin)
-        
-        return yy.numpy()
-
-class dual_osgnet(nn):
-    def __init__(self, vmin, vmax, tmin, tmax, config, multiscale=True):
-        super().__init__()
-        
-        self.osgnet1 = osgnet(vmin, vmax, tmin, tmax, config, multiscale)
-        self.osgnet2 = osgnet(vmin, vmax, tmin, tmax, config, multiscale)
-        self.gate    = torch.nn.ModuleList()
-        if self.osgnet1.dtype == "double":
-            self.gate.append(torch.nn.Linear(1, self.osgnet1.width).double())
-            self.gate.append(torch.nn.Linear(self.osgnet1.width, 2).double())
-        elif self.osgnet1.dtype == "single":
-            self.gate.append(torch.nn.Linear(1, self.osgnet1.width))
-            self.gate.append(torch.nn.Linear(self.osgnet1.width, 2))
-                    
-        
-        self.vmin       = torch.from_numpy(vmin)
-        self.vmax       = torch.from_numpy(vmax)
-        self.tmin       = tmin#torch.from_numpy(tmin)
-        self.tmax       = tmax#torch.from_numpy(tmax)
-        self.multiscale = multiscale
-        
-        self.dtype      = self.osgnet1.dtype
-        self.input_dim  = self.osgnet1.input_dim
-        self.output_dim = self.osgnet1.output_dim
-        self.depth      = self.osgnet1.depth
-        self.width      = self.osgnet1.width
-        
-    def forward(self, x):
-        
-        p  = torch.nn.Softmax(dim=-1)(self.gate[1](self.osgnet1.activation(self.gate[0](x[...,-1:]))))
-        y1 = self.osgnet1(x)
-        y2 = self.osgnet2(x)
-        
-        return p[:,:1]*y1 + p[:,1:2]*y2
-        
-    def predict(self, x, dt, device):
-        """
-        This function is NOT used for training. It is for testing and predicting trajectories given initial states which are not seen during training.
-        
-        x : unnormalized intial conditions. Numpy array (N, output_dim)
-        output: unnormalized prediction at the future steps. Numpy array (N, output_dim, steps+1)
-        """
-        self.to(device)
-        assert x.shape[1] == self.output_dim
-        steps = dt.shape[1]
-        
-        
-        dt = torch.from_numpy(dt)
-        dt = dt.to(device)
-        if self.multiscale:
-            dt = torch.log10(dt)
-        dt    = 2 * (dt - 0.5*(self.tmax+self.tmin) ) / (self.tmax-self.tmin)
-        
-        x     = torch.from_numpy(x)
-        x     = 2 * (x - 0.5*(self.vmax+self.vmin) ) / (self.vmax-self.vmin)
-        x     = x.to(device)
-
-        y  = torch.unsqueeze(x.clone(), -1)
-        self.eval()
-        with torch.no_grad():
-            for t in range(steps):
-                xx = torch.cat((y[...,-1], torch.tile(dt[:,t:t+1],[x.shape[0],1])), dim=-1)
-                pred = self.forward(xx)
-                y    = torch.cat((y,torch.unsqueeze(pred, dim=-1)), dim=-1)
-
-        y = y.cpu()        
-        y = y * 0.5*(self.vmax.unsqueeze(-1)-self.vmin.unsqueeze(-1)) + 0.5*(self.vmax.unsqueeze(-1)+self.vmin.unsqueeze(-1))
-        
-        return y.numpy()
-        
 class osgnet(nn):
 
     def __init__(self, vmin, vmax, tmin, tmax, config, multiscale=True):
@@ -311,7 +194,6 @@ class osgnet(nn):
         assert x.shape[1] == self.output_dim
         steps = dt.shape[1]
         
-        
         dt = torch.from_numpy(dt)
         dt = dt.to(device)
         if self.multiscale:
@@ -334,6 +216,31 @@ class osgnet(nn):
         y = y * 0.5*(self.vmax.unsqueeze(-1)-self.vmin.unsqueeze(-1)) + 0.5*(self.vmax.unsqueeze(-1)+self.vmin.unsqueeze(-1))
         
         return y.numpy()
+        
+class dual_osgnet(osgnet):
+    def __init__(self, vmin, vmax, tmin, tmax, config, multiscale=True):
+        super().__init__(vmin, vmax, tmin, tmax, config, multiscale)
+        
+        self.osgnet1 = osgnet(vmin, vmax, tmin, tmax, config, multiscale)
+        self.osgnet2 = osgnet(vmin, vmax, tmin, tmax, config, multiscale)
+        self.gate    = torch.nn.ModuleList()
+        if self.osgnet1.dtype == "double":
+            self.gate.append(torch.nn.Linear(1, self.osgnet1.width).double())
+            self.gate.append(torch.nn.Linear(self.osgnet1.width, 2).double())
+        elif self.osgnet1.dtype == "single":
+            self.gate.append(torch.nn.Linear(1, self.osgnet1.width))
+            self.gate.append(torch.nn.Linear(self.osgnet1.width, 2))
+                    
+    def forward(self, x):
+        
+        p  = torch.nn.Softmax(dim=-1)(self.gate[1](self.osgnet1.activation(self.gate[0](x[...,-1:]))))
+        y1 = self.osgnet1(x)
+        y2 = self.osgnet2(x)
+        
+        return p[:,:1]*y1 + p[:,1:2]*y2
+        
+        
+
         
         
         

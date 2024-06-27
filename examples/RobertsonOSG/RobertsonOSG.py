@@ -3,9 +3,8 @@ import due
 conf_data, conf_net, conf_train = due.utils.read_config("config.yaml")
 data_loader = due.datasets.ode.ode_dataset_osg(conf_data)
 trainX, trainY, test_traj, test_dt, vmin, vmax, tmin, tmax = data_loader.load("RobertsonOSG_train.mat", "RobertsonOSG_test.mat") # = trainX, trainY, test, vmin, vmax
-# print(trainX.shape, trainY.shape, test_traj.shape, test_dt.shape, vmin, vmax, tmin, tmax)
-# asd
-mynet = due.networks.fcn.osgnet(vmin, vmax, tmin, tmax, conf_net, multiscale=conf_data["multiscale"])
+
+mynet = due.networks.fcn.dual_osgnet(vmin, vmax, tmin, tmax, conf_net, multiscale=conf_data["multiscale"])
 
 #### specify the dataset for gdsg method
 ####
