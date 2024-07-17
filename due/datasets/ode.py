@@ -128,19 +128,6 @@ class ode_dataset():
                 selected = np.asarray([data[i,:,init:init+self.memory_steps+self.multi_steps+2] for init in inits])
                 target[i*self.nbursts:(i+1)*self.nbursts,...] = selected
 
-#        target = np.zeros((N*self.nbursts, self.problem_dim, self.memory_steps+self.multi_steps+2))
-#        for i in range(N):
-#            if self.nbursts < T-self.multi_steps-self.memory_steps-2:
-#                inits    = np.random.randint(0, T-self.multi_steps-self.memory_steps-2, self.nbursts)#(0, K-subset+1, J0)
-#                while  np.unique(inits).shape != inits.shape:
-#                    inits    = np.random.randint(0, T-self.multi_steps-self.memory_steps-2, self.nbursts)
-#            elif self.nbursts >= T-self.multi_steps-self.memory_steps-2:
-#                self.nbursts = T-self.multi_steps-self.memory_steps-3
-#                inits = np.arange(T-self.multi_steps-self.memory_steps-3)
-#            else:
-#                raise ValueError("Reduce nburst !")
-#            selected = np.asarray([data[i,:,init:init+self.memory_steps+self.multi_steps+2] for init in inits])
-#            target[i*self.nbursts:(i+1)*self.nbursts,...] = selected
         print("Dataset regrouped, {} bursts, {} variables, {} time instances".format(target.shape[0],self.problem_dim,target.shape[2]))
         
         #######################################################

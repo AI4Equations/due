@@ -235,6 +235,6 @@ class pde_dataset():
         print(target.shape, data_test.shape)
         return trainX.astype(self.dtype), trainY.astype(self.dtype), coords.astype(self.dtype), data_test.astype(self.dtype)
         
-        ############################3
+        ############################
 
 
