@@ -14,10 +14,13 @@ setup(
     ],
     packages=find_packages(),
     install_requires=[
-        'torch==1.13',
+        'torch==2.0.1',
         'pyyaml',
         'numpy==1.26.4',
         'scipy',
         'matplotlib'
     ],
+    dependency_links=[
+        '--index-url https://download.pytorch.org/whl/cu118'
+    ]
 )
