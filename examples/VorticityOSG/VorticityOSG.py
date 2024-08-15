@@ -8,7 +8,6 @@ trainX, trainY, coordinates, test_set, test_dt, vmin, vmax, tmin, tmax, cmin, cm
 print(vmin, vmax, tmin, tmax, cmin, cmax)
 mynet = due.networks.fno.osg_fno2d(vmin, vmax, tmin, tmax, conf_net, multiscale=conf_data["multiscale"])# due.networks.fno.osg_fno2d
 
-
 #mynet = mynet.load_params("model/model")
 model = due.models.PDE_osg(trainX, trainY, None, mynet, conf_train)
 model.train()

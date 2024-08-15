@@ -22,4 +22,3 @@ model.save_hist()
 
 pred = mynet.predict(test_set[...,:conf_data["memory"]+1], 10000, device='cpu')
 due.utils.ode_evaluate(prediction=pred, truth=test_set, save_path=conf_train["save_path"])
-############

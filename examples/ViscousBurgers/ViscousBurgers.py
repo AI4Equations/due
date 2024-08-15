@@ -7,7 +7,6 @@ trainX, trainY, coordinates, test_set= data_loader.load("ViscousBurgers_train.ma
 reducer = due.utils.generalized_fourier_projection1d(coordinates, conf_train)
 trainX_modal, trainY_modal, vmin, vmax = reducer.forward(trainX, trainY, training=True)
 
-## train
 mynet = due.networks.fcn.resnet(vmin, vmax, conf_net)
 #mynet = mynet.load_params("model/model")
 

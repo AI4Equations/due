@@ -7,7 +7,6 @@ trainX, trainY, test_traj, test_dt, vmin, vmax, tmin, tmax = data_loader.load("R
 mynet = due.networks.fcn.dual_osgnet(vmin, vmax, tmin, tmax, conf_net, multiscale=conf_data["multiscale"])
 
 #### specify the dataset for gdsg method
-####
 import numpy as np
 AC_rand = np.random.uniform(size=(trainX.shape[0]*conf_train["sg_pairing"], 2)).astype(conf_data["dtype"])
 AC_rand = AC_rand / np.sum(AC_rand, axis=1, keepdims=True)
@@ -34,8 +33,6 @@ osg_data = [u_rand, dt_rand]
 model = due.models.ODE_osg(trainX, trainY, osg_data, mynet, conf_train)
 model.train()
 model.save_hist()
-
-
 ##################################
 #mynet = mynet.load_params("model/model")
 print(test_dt.shape)
@@ -43,5 +40,3 @@ test_dt = np.genfromtxt("full_dt_100000.csv").reshape(1,-1)
 print(test_dt.shape)
 pred = mynet.predict(test_traj[...,0], test_dt, device=conf_train["device"])
 due.utils.ode_evaluate(prediction=pred, truth=None, save_path=conf_train["save_path"])
-
-############

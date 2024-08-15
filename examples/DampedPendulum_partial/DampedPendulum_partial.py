@@ -1,6 +1,3 @@
-import yaml
-from pathlib import Path
-
 import due
 ####################################################
 conf_data, conf_net, conf_train = due.utils.read_config("config.yaml")
@@ -15,5 +12,3 @@ model.save_hist()
 
 pred = mynet.predict(test_set[...,:conf_data["memory"]+1], test_set.shape[-1]-conf_data["memory"]-1, device='cpu')
 due.utils.ode_evaluate(prediction=pred, truth=test_set, save_path=conf_train["save_path"])
-
-############
