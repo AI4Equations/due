@@ -62,8 +62,8 @@ class osg_fno2d(nn):
         self.activation = get_activation(config["activation"])
         self.modes1 = config["modes1"]
         self.modes2 = config["modes2"]
-        self.nblocks = config["n_blocks"]
-        self.hid_dim  = config["encode_dim"]
+        self.nblocks = config["depth"]
+        self.hid_dim  = config["width"]
         self.multiscale = multiscale
         
         self.en = torch.nn.Linear(self.input_dim, self.hid_dim)

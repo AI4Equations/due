@@ -10,9 +10,9 @@ data:
     problem_dim: 3
 
 network:
-    encoding_dim: 256
+    width: 256
     n_head: 2
-    n_blocks: 4
+    depth: 4
     locality_encoder: 0.02
     locality_decoder: 0.02
     activation: "gelu"

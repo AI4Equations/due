@@ -11,8 +11,8 @@ data:
 network:
     modes1: 12
     modes2: 12
-    n_blocks: 4
-    encode_dim: 20
+    depth: 4
+    width: 20
     activation: "gelu"
 
 training:

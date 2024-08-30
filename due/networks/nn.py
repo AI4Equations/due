@@ -42,9 +42,9 @@ class pit_fixdt(nn):
         self.input_dim  = config["problem_dim"]*(self.memory+1)
         self.output_dim = config["problem_dim"]
         self.activation = get_activation(config["activation"])
-        self.hid_dim    = config["encoding_dim"]
+        self.hid_dim    = config["width"]
         self.n_head     = config["n_head"]
-        self.n_blocks   = config["n_blocks"]
+        self.n_blocks   = config["depth"]
         self.en_local   = config['locality_encoder']
         self.de_local   = config['locality_decoder']
         self.set_seed(config["seed"])
