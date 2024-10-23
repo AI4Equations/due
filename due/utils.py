@@ -399,6 +399,8 @@ def get_schedule(optimizer, name, epochs, batch_size, ntrain):
     
     elif name in ['cosine', 'Cosine']:
         return torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=epochs * (ntrain//batch_size))
+    elif name in ['one_cycle', 'One_Cycle', 'OneCycle']:
+        return torch.optim.lr_scheduler.OneCycleLR(optimizer, max_lr=optimizer.param_groups[0]['lr'], total_steps=epochs * (ntrain//batch_size))
         
     elif name in ['none', 'None']:
         return None

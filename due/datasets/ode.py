@@ -59,13 +59,16 @@ class ode_dataset_osg():
         ########## input output pairing
         trainX = np.hstack((target_X, target_dt))
         trainY = target_Y
-        
-        ## Load test set without normalization
-        data = loadmat(file_path_test)
-        dt   = data["dt"]
-        data = data["trajectories"]
-        print(trainX.shape, trainY.shape)
-        return trainX, trainY, data, dt, vmin, vmax, tmin, tmax
+        print("Input shape {}.".format(trainX.shape), "Output shape {}.".format(trainY.shape))
+        ################
+        if file_path_test==None:
+            return trainX, trainY, dt, vmin, vmax, tmin, tmax
+        else:
+            ## Load test set without normalization
+            data = loadmat(file_path_test)
+            dt   = data["dt"]
+            data = data["trajectories"]
+            return trainX, trainY, data, dt, vmin, vmax, tmin, tmax
 
     def normalize(self, data_X, data_dt, data_Y):
     
@@ -143,12 +146,15 @@ class ode_dataset():
         ########## input output pairing
         trainX = target[...,:self.memory_steps+1].transpose(0,2,1).reshape(target.shape[0],-1)
         trainY = target[...,self.memory_steps+1:]
-        
-        ## Load test set without normalization
-        data = loadmat(file_path_test)
-        data = data["trajectories"]
         print("Input shape {}.".format(trainX.shape), "Output shape {}.".format(trainY.shape))
-        return trainX.astype(self.dtype), trainY.astype(self.dtype), data.astype(self.dtype), np.asarray(vmin).astype(self.dtype), np.asarray(vmax).astype(self.dtype)
+
+        if file_path_test==None:
+            return trainX.astype(self.dtype), trainY.astype(self.dtype), np.asarray(vmin).astype(self.dtype), np.asarray(vmax).astype(self.dtype)
+        else:
+            ## Load test set without normalization
+            data = loadmat(file_path_test)
+            data = data["trajectories"]
+            return trainX.astype(self.dtype), trainY.astype(self.dtype), data.astype(self.dtype), np.asarray(vmin).astype(self.dtype), np.asarray(vmax).astype(self.dtype)
 
     def normalize(self, data):
     

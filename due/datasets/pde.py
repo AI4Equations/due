@@ -101,12 +101,16 @@ class pde_dataset_osg():
         else:
             target_dt = np.tile(target_dt[:,np.newaxis,np.newaxis,:], [1,H,W,1]) #(N,H,W,1)
             target_X  = np.concatenate((target_X,target_dt), axis=-1) # (N,H,W,D+1)
-        ## Load test set without normalization
-        data = loadmat(file_path_test)
-        dt   = data["dt"]
-        data = data["trajectories"]
         print("Input shape {}.".format(target_X.shape), "Output shape {}.".format(target_Y.shape))
-        return target_X.astype(self.dtype), target_Y.astype(self.dtype), coords.astype(self.dtype), data.astype(self.dtype), dt.astype(self.dtype), vmin.astype(self.dtype), vmax.astype(self.dtype), tmin.astype(self.dtype), tmax.astype(self.dtype), cmin.astype(self.dtype), cmax.astype(self.dtype)
+
+        if file_path_test==None:
+            return target_X.astype(self.dtype), target_Y.astype(self.dtype), coords.astype(self.dtype), dt.astype(self.dtype), vmin.astype(self.dtype), vmax.astype(self.dtype), tmin.astype(self.dtype), tmax.astype(self.dtype), cmin.astype(self.dtype), cmax.astype(self.dtype)
+        else:
+            ## Load test set without normalization
+            data = loadmat(file_path_test)
+            dt   = data["dt"]
+            data = data["trajectories"]
+            return target_X.astype(self.dtype), target_Y.astype(self.dtype), coords.astype(self.dtype), data.astype(self.dtype), dt.astype(self.dtype), vmin.astype(self.dtype), vmax.astype(self.dtype), tmin.astype(self.dtype), tmax.astype(self.dtype), cmin.astype(self.dtype), cmax.astype(self.dtype)
         
     def normalize(self, data, dt, coords):
     
@@ -229,12 +233,15 @@ class pde_dataset():
         
         trainX = target[...,:self.memory_steps+1]
         trainY = target[...,self.memory_steps+1:]
-        ## Load test set without normalization
-        data_test = loadmat(file_path_test)
-        data_test = data_test["trajectories"]
-        print(target.shape, data_test.shape)
-        return trainX.astype(self.dtype), trainY.astype(self.dtype), coords.astype(self.dtype), data_test.astype(self.dtype)
-        
+        print("Input shape {}.".format(trainX.shape), "Output shape {}.".format(trainY.shape))
+
+        if file_path_test==None:
+            return trainX.astype(self.dtype), trainY.astype(self.dtype), coords.astype(self.dtype)
+        else:
+            ## Load test set without normalization
+            data_test = loadmat(file_path_test)
+            data_test = data_test["trajectories"]
+            return trainX.astype(self.dtype), trainY.astype(self.dtype), coords.astype(self.dtype), data_test.astype(self.dtype)
         ############################
 
 

@@ -67,7 +67,7 @@ class pit_fixdt(nn):
         xx    = torch.from_numpy(x)
         xx    = xx.to(device)
         
-        yy  = torch.zeros(*xx.shape[:-1], steps+self.memory+1, device=device)#torch.zeros_like(y).to(self.device)
+        yy  = torch.zeros(*xx.shape[:-1], steps+self.memory+1, device=device)
         yy[...,:self.memory+1] = xx
         self.eval()
         with torch.no_grad():
