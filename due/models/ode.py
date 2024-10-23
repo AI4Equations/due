@@ -12,7 +12,7 @@ class ODE:
         super().__init__()
         
         self.trainX = torch.from_numpy(trainX)
-        self.trainY = torch.from_numpy(trainY) 
+        self.trainY = torch.from_numpy(trainY)
         
         self.multi_steps = self.trainY.shape[-1]
         if self.trainX.shape[1] > self.trainY.shape[1]:

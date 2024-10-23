@@ -4,7 +4,6 @@ torch.set_float32_matmul_precision('high')
 from .nn import nn
 from ..utils import get_activation
 torch.manual_seed(0)
-#np.random.seed(0)
 
 class SpectralConv2d(nn):
     """ This is adapted from the implementation of Fourier neural operator. Reference to https://github.com/neuraloperator/neuraloperator/blob/master/fourier_2d_time.py"""

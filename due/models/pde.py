@@ -83,8 +83,6 @@ class PDE:
         
         plt.figure(figsize=(9,9))
         plt.plot(range(1,self.nepochs+1), self.hist[:,0], label="Train")
-#        plt.plot(np.arange(1,self.nepochs+1), self.hist[:,1], label="Valid")
-#        plt.legend()
         if xlog:
             plt.xscale("log")
         if ylog:
@@ -93,7 +91,7 @@ class PDE:
         plt.close()
 
     def summary(self):
-        """Prints all trainable variables."""
+        """Print all trainable variables."""
         # TODO: backend tensorflow, pytorch
         print("Number of trainable parameters:", self.mynet.count_params())
         print()

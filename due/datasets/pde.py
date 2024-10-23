@@ -13,7 +13,7 @@ class pde_dataset_osg():
     def load(self, file_path_train, file_path_test):
     
         try:
-            data = loadmat(file_path_train) #(10000,2,1001) #np.genfromtxt(file_path, delimiter=",")
+            data = loadmat(file_path_train)
         except NotImplementedError:
             print("Your mat file is too large. Be patient.")
             import mat73
@@ -147,10 +147,10 @@ class pde_dataset():
     def load(self, file_path_train, file_path_test):
     
         try:
-            data = loadmat(file_path_train) #(10000,2,1001) #np.genfromtxt(file_path, delimiter=",")
+            data = loadmat(file_path_train)
             try:
                 coords = data["coordinates"]
-                data   = data["trajectories"]#[:,:,:,np.newaxis,:]
+                data   = data["trajectories"]
             except:
                 raise ValueError("Please name your dataset as trajectories.")
         except NotImplementedError:
@@ -214,7 +214,7 @@ class pde_dataset():
             
         for i in range(N):
             if self.nbursts < T-self.memory_steps-self.multi_steps-1:
-                inits    = np.random.randint(0, T-self.memory_steps-self.multi_steps-1, self.nbursts)#(0, K-subset+1, J0)
+                inits    = np.random.randint(0, T-self.memory_steps-self.multi_steps-1, self.nbursts)
                 while np.unique(inits).shape != inits.shape:
                     inits    = np.random.randint(0, T-self.memory_steps-self.multi_steps-1, self.nbursts)
             else:

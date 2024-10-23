@@ -102,7 +102,6 @@ class PDE_osg(PDE):
             if (ep+1)%self.verbose ==0:
                 end = time()
                 print(f"Epoch {ep+1} --- Time: {end-start:.2f} seconds --- Training loss: {train_step}")
-#                print("Epoch", ep+1, "Time", end-start,"seconds --- Training loss", train_step)
                 start = end
 
 

@@ -1,5 +1,4 @@
 import torch
-#torch.set_default_dtype(torch.float64)
 import os
 from ..utils import get_activation
 
@@ -61,8 +60,6 @@ class pit_fixdt(nn):
         x : intial conditions. Numpy array (N, L, d, memory)
         output: unnormalized prediction at the future steps. Numpy array (N, L, d, steps)
         """
-#        if (x.shape[1] != self.npoints) or (x.shape[2] != self.output_dim) or (x.shape[3] != self.memory+1):
-#            raise ValueError(f"Input shape error.")
 
         xx    = torch.from_numpy(x)
         xx    = xx.to(device)
@@ -86,7 +83,6 @@ class pit_fixdt(nn):
         mesh2 = mesh2.to(device)
         dist  = torch.cdist(mesh1, mesh2, p=2)
         dist2 = dist**2
-#        print(dist2.shape, torch.max(dist2))
         dist2 = dist2/torch.max(dist2)
         return dist2
         

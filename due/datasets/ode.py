@@ -12,14 +12,14 @@ class ode_dataset_osg():
     def load(self, file_path_train, file_path_test):
         
         try:
-            data = loadmat(file_path_train) #(10000,2,1001) #np.genfromtxt(file_path, delimiter=",")
+            data = loadmat(file_path_train)
         except NotImplementedError:
             print("Your mat file is too large. Be patient.")
             import mat73
             data = mat73.loadmat(file_path_train)
         dt  = data["dt"]
         try:
-            data = data["trajectories"] #(10000,2,1001)
+            data = data["trajectories"]
         except:
             raise ValueError(f"Please name your dataset as trajectories.")
         
@@ -51,8 +51,7 @@ class ode_dataset_osg():
             target_Y[i*self.nbursts:(i+1)*self.nbursts,...]  = selected_Y
         print("Dataset regrouped, {} bursts, {} variables".format(target_Y.shape[0],self.problem_dim))
 
-        #######################################################
-        ###### normalization
+        ###### normalize data into [-1,1]
         target_X, target_dt, target_Y, vmin, vmax, tmin, tmax = self.normalize(target_X, target_dt, target_Y)
         print("Training data is normalized")
         ###########################################
@@ -98,13 +97,13 @@ class ode_dataset():
     def load(self, file_path_train, file_path_test):
         
         try:
-            data = loadmat(file_path_train) #(10000,2,1001) #np.genfromtxt(file_path, delimiter=",")
+            data = loadmat(file_path_train)
         except NotImplementedError:
             print("Your mat file is too large. Be patient.")
             import mat73
             data = mat73.loadmat(file_path_train)
         try:
-            data = data["trajectories"] #(10000,2,1001)
+            data = data["trajectories"]
         except:
             raise ValueError("Please name your dataset as trajectories.")
 
@@ -133,8 +132,7 @@ class ode_dataset():
 
         print("Dataset regrouped, {} bursts, {} variables, {} time instances".format(target.shape[0],self.problem_dim,target.shape[2]))
         
-        #######################################################
-        ###### normalization
+        ###### normalize data into [-1,1]
         np.random.shuffle(target)
         np.random.shuffle(target)
         np.random.shuffle(target)

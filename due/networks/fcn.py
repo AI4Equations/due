@@ -98,7 +98,9 @@ class mlp(nn):
         return x
         
 class resnet(affine):
-
+    """
+    ResNet built upon a feedforward neural network
+    """
     def __init__(self, vmin, vmax, config):
         super().__init__(vmin, vmax, config)
         
@@ -108,6 +110,9 @@ class resnet(affine):
         return self.mlp(x) + x[...,-self.output_dim:]
 
 class gresnet(affine):
+    """
+    Generalized ResNet built upon a given prior model and a feedforward neural network
+    """
     def __init__(self, prior, vmin, vmax, config):
         super().__init__(vmin, vmax, config)
         
@@ -121,7 +126,9 @@ class gresnet(affine):
         return self.prior(x) + self.mlp(x)
 
 class osgnet(nn):
-
+    """
+    Operator semigroup network built upon a feedforward neural network
+    """
     def __init__(self, vmin, vmax, tmin, tmax, config, multiscale=True):
         super().__init__()
         
@@ -215,6 +222,9 @@ class osgnet(nn):
         return y.numpy()
         
 class dual_osgnet(osgnet):
+    """
+    Dual-OSG_Net built upon two OSG-Nets and a gating network, which is a two-layer feedforward neural network
+    """
     def __init__(self, vmin, vmax, tmin, tmax, config, multiscale=True):
         super().__init__(vmin, vmax, tmin, tmax, config, multiscale)
         

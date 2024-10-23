@@ -20,7 +20,6 @@ def read_config(config_path):
     except:
         pass
     
-    
     conf_net["seed"] = config["seed"]
     conf_net["dtype"] = config["dtype"]
     
@@ -51,7 +50,10 @@ def read_csv(path, dtype):
         return data.astype("float64")
 
 def pde2dirregular_evaluate(coordinates, elements, prediction, truth, save_path):
-
+    """
+    evaluate the relative l2 error of prediction and references, for two-dimensional PDE data collected on irregular meshes
+    If ground truth is None, do plot only.
+    """
     assert len(prediction.shape) == 4
     savemat(save_path+"/pred.mat", mdict={"trajectories":prediction})
     N = prediction.shape[0]
@@ -120,6 +122,10 @@ def pde2dirregular_evaluate(coordinates, elements, prediction, truth, save_path)
                 plt.close()
 
 def pde2dregular_evaluate(coordinates, prediction, truth, save_path):
+    """
+    evaluate the relative l2 error of prediction and references, for two-dimensional PDE data collected on regular grids
+    If ground truth is None, do plot only.
+    """
 
     assert len(prediction.shape) == 5
     savemat(save_path+"/pred.mat", mdict={"trajectories":prediction})
@@ -142,7 +148,6 @@ def pde2dregular_evaluate(coordinates, prediction, truth, save_path):
                 plt.savefig(save_path+"/pred_u{}_t{}.png".format(d+1,t+1))
                 plt.close()
                 
-                
     else:
         assert prediction.shape == truth.shape
         print("Relative error is:", np.mean(np.linalg.norm((prediction-truth).transpose(0,4,1,2,3).reshape(N,-1,D), ord=2, axis=1) / np.linalg.norm(truth.transpose(0,4,1,2,3).reshape(N,-1,D), ord=2, axis=1)))
@@ -157,6 +162,10 @@ def pde2dregular_evaluate(coordinates, prediction, truth, save_path):
         np.savetxt(save_path+"/rel_err.csv", l2_rel_err.T)
         
 def pde1d_evaluate(coordinates, prediction, truth, save_path):
+    """
+    evaluate the relative l2 error of prediction and references, for one-dimensional PDE data collected on either regular grids or irregular meshes
+    If ground truth is None, do plot only.
+    """
     
     assert len(prediction.shape) < 5
     savemat(save_path+"/pred.mat", mdict={"trajectories":prediction})
@@ -268,6 +277,11 @@ def ode_evaluate(prediction, truth, save_path):
             plt.close()
 
 class generalized_fourier_projection1d():
+    """
+    Used for learning PDEs in modal spaces. 
+    It provides a forward funtion to compute the modal coefficients of a batch of PDE data, and a backward function to recover the PDE solutions in the physical spacefrom a batch of modal coefficients.
+    Currently, it supports the trignometric bases.
+    """    
     def __init__(self, coords, config_train):
         self.coords = coords
         self.modes  = config_train["modes"]
@@ -281,7 +295,6 @@ class generalized_fourier_projection1d():
         Input data shape: (batch_size,L,D,T)
         Output Fourier coefficients shape: (batch_size,2*modes+1,D,T)
         """
-        
         
         memory = trainX.shape[-1]-1
         steps  = trainY.shape[-1]

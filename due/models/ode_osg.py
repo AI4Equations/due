@@ -18,8 +18,8 @@ class ODE_osg(ODE):
         if osg_data==None:
             self.vmin        = self.mynet.vmin
             self.vmax        = self.mynet.vmax
-            self.tmin        = self.mynet.tmin#.unsqueeze(-1)
-            self.tmax        = self.mynet.tmax#.unsqueeze(-1)
+            self.tmin        = self.mynet.tmin
+            self.tmax        = self.mynet.tmax
             if self.sg_pairing != 0:
                 self.u0_rand     = 2.0*torch.rand(self.trainX.shape[0],self.sg_pairing,self.trainY.shape[1], dtype=self.trainX.dtype)-1.0
                 self.dt_rand     = 2.0*torch.rand(self.trainX.shape[0],self.sg_pairing, 2, dtype=self.trainX.dtype)-1.0
