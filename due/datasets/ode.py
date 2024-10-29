@@ -75,12 +75,15 @@ class ode_dataset_osg():
         vmin      = np.minimum(np.min(data_X, axis=0, keepdims=True), np.min(data_Y, axis=0, keepdims=True))
         target_X  = 2*(data_X-0.5*(vmax+vmin))/(vmax-vmin)
         target_Y  = 2*(data_Y-0.5*(vmax+vmin))/(vmax-vmin)
+        target_X  = np.clip(target_X, -1, 1)
+        target_Y  = np.clip(target_Y, -1, 1)
         
         if self.multiscale:
             data_dt = np.log10(data_dt)
         tmax      = data_dt.max()
         tmin      = data_dt.min()
         target_dt = 2*(data_dt-0.5*(tmax+tmin))/(tmax-tmin)
+        target_dt = np.clip(target_dt, -1, 1)
         return target_X, target_dt, target_Y, vmin, vmax, tmin, tmax         
         
 class ode_dataset():
@@ -159,5 +162,6 @@ class ode_dataset():
         vmax   = np.max(data, axis=(0,2), keepdims=True)
         vmin   = np.min(data, axis=(0,2), keepdims=True)
         target = 2*(data-0.5*(vmax+vmin))/(vmax-vmin)
+        target = np.clip(target, -1, 1)
         return target, vmin, vmax
             

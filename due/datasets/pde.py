@@ -118,17 +118,20 @@ class pde_dataset_osg():
         vmax      = np.max(data, axis=axes, keepdims=True)
         vmin      = np.min(data, axis=axes, keepdims=True)
         data      = 2*(data-0.5*(vmax+vmin))/(vmax-vmin)
+        data      = np.clip(data, -1, 1)
         
         if self.multiscale:
             dt = np.log10(dt)
         tmax      = dt.max()
         tmin      = dt.min()
         dt        = 2*(dt-0.5*(tmax+tmin))/(tmax-tmin)
+        dt        = np.clip(dt, -1, 1)
         
         
         cmax      = np.max(coords, axis=tuple(range(len(coords.shape[:-1]))), keepdims=True)
         cmin      = np.min(coords, axis=tuple(range(len(coords.shape[:-1]))), keepdims=True)
         coords    = 2*(coords-0.5*(cmax+cmin))/(cmax-cmin)
+        coords    = np.clip(coords, -1, 1)
         return data, dt, coords, vmin, vmax, tmin, tmax, cmin, cmax
         ############################
         
