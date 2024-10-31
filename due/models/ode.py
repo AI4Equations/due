@@ -35,11 +35,26 @@ class ODE:
             os.mkdir(self.save_path)
         except:
             pass
-        self.train_loader = torch.utils.data.DataLoader(torch.utils.data.TensorDataset(self.trainX, self.trainY), batch_size=self.bsize, shuffle=True)
+        
+        if config["valid"] > 0:
+            self.do_validation = True
+            self.hist   = torch.zeros(self.nepochs,2)
+            self.split  = int(config["valid"] * self.trainX.shape[0])
+            print(self.trainX.shape[0]-self.split, "for training;", self.split, "for validation.")
+            self.validX = self.trainX[-self.split:,...]
+            self.trainX = self.trainX[:-self.split,...]
+            self.validY = self.trainY[-self.split:,...]
+            self.trainY = self.trainY[:-self.split,...]
+            self.train_loader = torch.utils.data.DataLoader(torch.utils.data.TensorDataset(self.trainX, self.trainY), batch_size=self.bsize, shuffle=True, drop_last=True)
+            self.valid_loader = torch.utils.data.DataLoader(torch.utils.data.TensorDataset(self.validX, self.validY), batch_size=self.bsize, shuffle=False, drop_last=True)
+        elif config["valid"] <= 0.:
+            self.do_validation = False
+            self.hist   = torch.zeros(self.nepochs,1)
+            self.train_loader = torch.utils.data.DataLoader(torch.utils.data.TensorDataset(self.trainX, self.trainY), batch_size=self.bsize, shuffle=True, drop_last=True)
         
     def train(self):
         self.summary()
-        self.hist   = torch.zeros(self.nepochs,1)
+        
         overal_start = time()
         start        = overal_start
 
@@ -47,7 +62,7 @@ class ODE:
         for ep in range(self.nepochs):
             self.mynet.train()
             
-            train_step = 0
+            train_step = 0.
             for xx, yy in self.train_loader:
                 
                 xx = xx.to(self.device)
@@ -68,15 +83,40 @@ class ODE:
                     self.scheduler.step()
                 
             train_step /= len(self.train_loader)
-            if train_step < min_loss:
-                torch.save(self.mynet, self.save_path+"/model")
-                min_loss = train_step
-            self.hist[ep,0] = train_step
-            
-            if (ep+1)%self.verbose ==0:
-                end = time()
-                print(f"Epoch {ep+1} --- Time: {end-start:.2f} seconds --- Training loss: {train_step}")
-                start = end
+            if self.do_validation:
+                valid_step = 0.
+                for xx, yy in self.valid_loader:
+                    
+                    xx = xx.to(self.device)
+                    yy = yy.to(self.device)
+
+                    pred = torch.zeros_like(yy)
+                    for t in range(self.multi_steps):
+                        pred[...,t] = self.mynet(xx) #(batch_size, output_dim)
+                        xx   = torch.cat((xx[...,self.mynet.output_dim:], pred[...,t]), -1)
+                        
+                    loss       = self.loss_func(yy, pred)
+                    valid_step += loss.item()
+                valid_step /= len(self.valid_loader)
+                if valid_step < min_loss:
+                    torch.save(self.mynet, self.save_path+"/model")
+                    min_loss = valid_step
+                self.hist[ep,0] = train_step
+                self.hist[ep,1] = valid_step
+                if (ep+1)%self.verbose ==0:
+                    end = time()
+                    print(f"Epoch {ep+1} --- Time: {end-start:.2f} seconds --- Training loss: {train_step} --- Validation loss: {valid_step}")
+                    start = end
+            else:
+                if train_step < min_loss:
+                    torch.save(self.mynet, self.save_path+"/model")
+                    min_loss = train_step
+                self.hist[ep,0] = train_step
+                
+                if (ep+1)%self.verbose ==0:
+                    end = time()
+                    print(f"Epoch {ep+1} --- Time: {end-start:.2f} seconds --- Training loss: {train_step}")
+                    start = end
         
     def save_hist(self, xlog=False, ylog=True):
         savetxt(self.save_path+"/training_history.csv", self.hist)

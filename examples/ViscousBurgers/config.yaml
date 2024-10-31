@@ -18,6 +18,7 @@ network:
 training:
     modes: 10
     device: "cpu" #"cpu", "cuda"
+    valid: 0
     epochs: 500
     batch_size: 10
     optimizer: "adam"
