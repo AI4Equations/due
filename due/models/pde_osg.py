@@ -103,6 +103,3 @@ class PDE_osg(PDE):
                 end = time()
                 print(f"Epoch {ep+1} --- Time: {end-start:.2f} seconds --- Training loss: {train_step}")
                 start = end
-
-
-
