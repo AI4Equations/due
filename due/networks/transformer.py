@@ -19,7 +19,71 @@ class xavier_mlp(nn):
         x = self.activation(x)
         x = self.mlp2(x)
         return x
+
+class mhsa(nn):
+    def __init__(self, n_head, hid_dim, activation):
+        super(mhsa, self).__init__()
+        self.hid_dim = hid_dim 
+        self.n_head = n_head 
+        self.v_dim = round(hid_dim / n_head) 
+        self.activation = activation
+
+        self.q = torch.nn.Linear(self.hid_dim, self.hid_dim, bias=False)
+        torch.nn.init.xavier_uniform_(self.q.weight)
+        self.k = torch.nn.Linear(self.hid_dim, self.hid_dim, bias=False)
+        torch.nn.init.xavier_uniform_(self.k.weight) 
+
+    def forward(self, inputs):
+        bsize = inputs.shape[0]
+        Q = self.q(inputs).view(bsize, -1, self.n_head, self.v_dim).transpose(1, 2) # (b,h,l,d/h)
+        K = self.k(inputs).view(bsize, -1, self.n_head, self.v_dim).transpose(1, 2) # (b,h,l,d/h)
+        scores = torch.matmul(Q, K.transpose(-2, -1)) / (self.v_dim ** 0.5)  # (b,h,l,l)
+        att = torch.nn.Softmax(dim=-1)(scores)  # Shape: (b,h,l,l)
+        convoluted = torch.einsum('bhli, bid->bhld', att, inputs).transpose(1, 2).contiguous().view(bsize, -1, self.n_head*self.hid_dim)# Shape: (b,l,d)
+        return convoluted
+
+class transformer_sa(nn):
+
+    def __init__(self, config):
+
+        super(transformer_sa, self).__init__()
+
+        self.memory     = config["memory"]
+        self.input_dim  = config["problem_dim"]*(self.memory+1)
+        self.output_dim = config["problem_dim"]
+        self.activation = get_activation(config["activation"])
+        self.hid_dim    = config["width"]
+        self.n_head     = config["n_head"]
+        self.n_blocks   = config["depth"] - 1
+        self.set_seed(config["seed"])
         
+        self.en = torch.nn.Linear(self.input_dim, self.hid_dim)
+        torch.nn.init.xavier_uniform_(self.en.weight)
+        self.sa = mhsa(self.n_head, self.hid_dim, self.activation)
+
+        self.W = torch.nn.ModuleList([torch.nn.Linear(self.n_head*self.hid_dim, self.hid_dim) for _ in range(self.n_blocks)]) 
+        for linear in self.W: 
+            torch.nn.init.xavier_uniform_(linear.weight) 
+        self.SA = torch.nn.ModuleList([mhsa(self.n_head, self.hid_dim, self.activation) for _ in range(self.n_blocks)]) 
+ 
+        self.de= torch.nn.Linear(self.n_head*self.hid_dim, self.output_dim)
+        torch.nn.init.xavier_uniform_(self.de.weight)
+ 
+    def forward(self, inputs):
+        
+        x    = inputs.permute(0,1,3,2).reshape(inputs.shape[0], inputs.shape[1], -1)
+        x    = self.en(x)
+        x    = self.sa(x)
+        x    = self.activation(x)
+
+        for sa, w in zip(self.SA, self.W):
+            x = w(x)
+            x = sa(x)
+            x = self.activation(x) 
+        
+        x = self.de(x)
+        return x + inputs[...,-1]
+
 class mhpa(nn):
 
     def __init__(self, m_dist, n_head, hid_dim, locality, activation):
