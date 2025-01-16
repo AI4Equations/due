@@ -278,9 +278,9 @@ def ode_evaluate(prediction, truth, save_path):
 
 class generalized_fourier_projection1d():
     """
-    Used for learning PDEs in modal spaces. 
-    It provides a forward funtion to compute the modal coefficients of a batch of PDE data, and a backward function to recover the PDE solutions in the physical spacefrom a batch of modal coefficients.
-    Currently, it supports the trignometric bases.
+    Used for learning one-domensional PDEs in modal spaces. 
+    It provides a forward funtion to compute the modal coefficients of a batch of PDE data, and a backward function to recover the PDE solutions in the physical space from a batch of modal coefficients.
+    Currently, it supports the trignometric basis functions.
     """    
     def __init__(self, coords, config_train):
         self.coords = coords

@@ -7,7 +7,7 @@ class pde_dataset_osg():
     A class representing a partial differential equation (PDE) dataset.
 
     Attributes:
-        problem_type (str): The type of the PDE problem.
+        problem_type (str): The type of the PDE problem, one of {"1d_regular", "2d_regular", "1d_irregular", "2d_irregular"}.
         nbursts (int): The number of short bursts sampled from each trajectory.
         multiscale (bool): Indicates whether the dataset exhibits multiscale property in time.
         dtype (str): The data type of the dataset.

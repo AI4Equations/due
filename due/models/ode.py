@@ -7,7 +7,44 @@ from ..utils import *
 
 
 class ODE:
+ """
+    Class representing an Ordinary Differential Equation (ODE) model.
 
+    Args:
+        trainX (numpy array): The input training data.
+        trainY (numpy array): The target training data.
+        network: The neural network model.
+        config (dict): Configuration parameters for training.
+
+    Attributes:
+        trainX (torch.Tensor): The input training data as a PyTorch tensor.
+        trainY (torch.Tensor): The target training data as a PyTorch tensor.
+        multi_steps (int): The number of steps for multi-step rollout during training.
+        memory_steps (int): The number of memory steps for input data.
+        device (str): The device (e.g., "cpu", "cuda") to use for training.
+        mynet: The neural network model.
+        nepochs (int): The number of training epochs.
+        bsize (int): The batch size for training.
+        lr (float): The initial learning rate for optimization.
+        optimizer: The optimizer for model training.
+        scheduler: The learning rate scheduler.
+        verbose (int): The frequency of printing training progress.
+        loss_func: The loss function for training.
+        save_path (str): The path to save the trained model.
+        do_validation (bool): Flag indicating whether to conduct validation for model selection.
+        split (int): The index to split training and validation data.
+        validX (torch.Tensor): The input validation data.
+        validY (torch.Tensor): The target validation data.
+        train_loader: The data loader for training data.
+        valid_loader: The data loader for validation data.
+        hist (torch.Tensor): The training history.
+
+    Methods:
+        train(): Trains the ODE model.
+        save_hist(xlog=False, ylog=True): Saves the training history.
+        summary(): Prints a summary of the ODE model.
+        set_seed(seed): Sets the random seed for reproducibility.
+    """
     def __init__(self, trainX, trainY, network, config):
         super().__init__()
         

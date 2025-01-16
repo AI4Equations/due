@@ -25,7 +25,32 @@ class nn(torch.nn.Module):
         torch.backends.cudnn.deterministic = True
        
 class pit_fixdt(nn):
-    """Base class for Position-induced Transformers."""
+    
+     """Base class for Position-induced Transformers.
+    
+    Args:
+        mesh1 (ndarray): The first mesh array of shape (L1, d).
+        mesh2 (ndarray): The second mesh array of shape (L2, d).
+        device (str): The device to run the computations on.
+        config (dict): Configuration parameters for the class.
+        
+    Attributes:
+        device (str): The device to run the computations on.
+        msh_qry (ndarray): The mesh for training/testing data, array of shape (L_qry, d).
+        msh_ltt (ndarray): The pre-fixed latent mesh for pit, array of shape (L_ltt, d).
+        m_cross (ndarray): Pairwise distance between msh_qry and msh_ltt.
+        m_latent (ndarray): Pairwise distance between msh_ltt and msh_ltt.
+        npoints (int): Number of points in msh_qry.
+        memory (int): Memory step.
+        input_dim (int): Input channels.
+        output_dim (int): Output channels.
+        activation (function): Activation function.
+        hid_dim (int): Hidden channels/network width/lifting dimension.
+        n_head (int): Number of attention heads.
+        n_blocks (int): Number of attention blocks.
+        en_local (float): quantile for local attention in the encoder.
+        de_local (float): quantile for local attention in the decoder.
+    """
     
     def __init__(self, mesh1, mesh2, device, config):
         super(pit_fixdt, self).__init__()

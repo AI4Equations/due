@@ -4,7 +4,31 @@ from ..utils import *
 from .ode import ODE
 
 class ODE_osg(ODE):
+    """
+    ODE_osg class represents an ODE (Ordinary Differential Equation) model with semigroup regularization.
 
+    Args:
+        trainX (numpy array): The input training data.
+        trainY (numpy array): The target training data.
+        osg_data (tuple): A tuple containing the OSG data (u0_rand, dt_rand). Default is None.
+        network (due.nn): The neural network model.
+        config (dict): A dictionary containing the configuration parameters.
+
+    Attributes:
+        sg_pairing (int): The number of pairing for the semigroup regularization.
+        sg_weight (float32, float64): The weight for the semigroup regularization.
+        vmin (float): The minimum value of the network's vmin.
+        vmax (float): The maximum value of the network's vmax.
+        tmin (float): The minimum value of the network's tmin.
+        tmax (float): The maximum value of the network's tmax.
+        u0_rand (torch.Tensor): The random initial states.
+        dt_rand (torch.Tensor): The random time step sizes.
+
+    Methods:
+        osg_regularization: Performs semigroup regularization.
+        train: Trains the ODE_osg model.
+        summary: Prints the summary of the ODE_osg model.
+    """
     def __init__(self, trainX, trainY, osg_data, network, config):
         super(ODE_osg, self).__init__(trainX, trainY, network, config)
         

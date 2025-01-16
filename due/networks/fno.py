@@ -1,3 +1,5 @@
+""" This is adapted from the implementation of Fourier neural operator. Reference to https://github.com/neuraloperator/neuraloperator/blob/master/fourier_2d_time.py"""
+
 import torch
 torch.set_default_dtype(torch.float32)
 torch.set_float32_matmul_precision('high')
@@ -6,7 +8,6 @@ from ..utils import get_activation
 torch.manual_seed(0)
 
 class SpectralConv2d(nn):
-    """ This is adapted from the implementation of Fourier neural operator. Reference to https://github.com/neuraloperator/neuraloperator/blob/master/fourier_2d_time.py"""
     def __init__(self, in_channels, out_channels, modes1, modes2):
         super(SpectralConv2d, self).__init__()
 

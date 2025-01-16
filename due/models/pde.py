@@ -7,6 +7,38 @@ from ..utils import *
 
 class PDE:
 
+    """
+    Class representing a Partial Differential Equation (PDE) model.
+
+    Parameters:
+    - trainX: Input training data. Shape: (N, L, D, M) for irregular and 1D regular problems; (N, H, W, D, M) for 2D regular problems.
+    - trainY: Output training data. Shape: (N, L, D, S) for irregular and 1D regular problems; (N, H, W, D, S) for 2D regular problems.
+    - network: The neural network model.
+    - config: Configuration dictionary containing various settings for training the model.
+
+    Attributes:
+    - trainX: Input training data.
+    - trainY: Output training data.
+    - memory_steps: Number of memory steps in the input data.
+    - multi_steps: Number of steps in the output data.
+    - device: Device (CPU or GPU) on which the model is trained.
+    - mynet: The neural network model.
+    - nepochs: Number of training epochs.
+    - bsize: Batch size for training.
+    - lr: Initial learning rate for optimization.
+    - optimizer: The optimizer used for model training.
+    - scheduler: The learning rate scheduler.
+    - verbose: Frequency of printing training progress.
+    - loss_func: The loss function used for training.
+    - save_path: Path to save the trained model.
+    - train_loader: DataLoader for training data.
+
+    Methods:
+    - train(): Train the PDE model.
+    - save_hist(xlog=False, ylog=True): Save the training history.
+    - summary(): Print a summary of the model.
+    - set_seed(seed): Set the random seed for reproducibility.
+    """
     def __init__(self, trainX, trainY, network, config):
         super().__init__()
         

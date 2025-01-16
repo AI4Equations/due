@@ -4,6 +4,27 @@ from .nn import nn
 from ..utils import get_activation
 
 class affine(nn):
+    """
+    A class representing an affine layer.
+
+    Args:
+        vmin (numpy.ndarray): The minimum values for normalization.
+        vmax (numpy.ndarray): The maximum values for normalization.
+        config (dict): A dictionary containing configuration parameters.
+
+    Attributes:
+        vmin (torch.Tensor): The minimum values for normalization.
+        vmax (torch.Tensor): The maximum values for normalization.
+        dtype (str): The data type for the linear layer.
+        memory (int): The number of memory steps.
+        output_dim (int): The dimension of the output.
+        input_dim (int): The dimension of the input.
+
+    Methods:
+        forward(x): Performs forward pass through the linear layer.
+        predict(x, steps, device): Predicts future trajectories given initial states.
+
+    """    
     def __init__(self, vmin, vmax, config):
         super().__init__()
         self.vmin = torch.from_numpy(vmin)
@@ -54,7 +75,22 @@ class affine(nn):
         return yy.numpy()
 
 class mlp(nn):
-    """Fully-connected neural network."""
+    
+    """Fully-connected neural network.
+
+    Args:
+        config (dict): Configuration parameters for the neural network.
+
+    Attributes:
+        dtype (str): Data type of the network (either "single" or "double").
+        output_dim (int): Dimension of the output.
+        memory (int): Number of memory steps.
+        input_dim (int): Dimension of the input.
+        depth (int): Number of hidden layers.
+        width (int): number of neurons in each hidden layers.
+        activation (function): Activation function to be used.
+
+    """
 
     def __init__(self, config):
         super().__init__()
@@ -98,8 +134,12 @@ class mlp(nn):
         return x
         
 class resnet(affine):
+    
     """
     ResNet built upon a feedforward neural network
+    
+    This class represents a ResNet model that is built upon a feedforward neural network.
+    It inherits from the `affine` class.
     """
     def __init__(self, vmin, vmax, config):
         super().__init__(vmin, vmax, config)
@@ -112,6 +152,12 @@ class resnet(affine):
 class gresnet(affine):
     """
     Generalized ResNet built upon a given prior model and a feedforward neural network
+    
+    Args:
+        prior: The prior model to build upon.
+        vmin: The minimum value for affine transformation.
+        vmax: The maximum value for affine transformation.
+        config: The configuration for the model.
     """
     def __init__(self, prior, vmin, vmax, config):
         super().__init__(vmin, vmax, config)
@@ -223,7 +269,7 @@ class osgnet(nn):
         
 class dual_osgnet(osgnet):
     """
-    Dual-OSG_Net built upon two OSG-Nets and a gating network, which is a two-layer feedforward neural network
+    Dual-OSG_Net built upon two OSG-Nets and a gating network, which is itself a two-layer feedforward neural network
     """
     def __init__(self, vmin, vmax, tmin, tmax, config, multiscale=True):
         super().__init__(vmin, vmax, tmin, tmax, config, multiscale)
