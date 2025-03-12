@@ -27,7 +27,7 @@ $ python setup.py install
 
 ## Usage
 
-The easiest way to get started with DUE is by running the provided templates in the ```examples/```. directory. To launch new learning tasks, simply modify these templates slightly and prepare custom datasets.
+The easiest way to get started with DUE is by running the provided templates in the ```examples/``` directory. To launch new learning tasks, simply modify these templates slightly and prepare custom datasets.
 
 - For time series data with a fixed time lag, prepare a ```.mat``` file containing an array named "trajectories" with size ```(N, d, T+1)```, where ```N``` is the number of collected trajectories, ```d``` is the number of state variabes, and ```T``` is the number of time steps per trajectory. An optional second dataset of size ```(N', d, T'+1)``` can be used for model evaluation after training.
 
