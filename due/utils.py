@@ -436,8 +436,3 @@ def get_loss(name):
         return rel_l1_norm
     else:
         raise ValueError(f'unknown or unsupported loss function: {name}')
-        
-        
-        
-        
-        

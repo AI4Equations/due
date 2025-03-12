@@ -1,12 +1,11 @@
 # DUE
 
-Equations, particularly differential equations, are fundamental for understanding natural phenomena and predicting complex dynamics across various scientific and engineering disciplines. However, the governing equations for many complex systems remain unknown due to intricate underlying mechanisms. Recent advancements in machine learning and data science offer a new paradigm for modeling unknown equations from measurement or simulation data. This paradigm shift, known as data-driven discovery or modeling, stands at the forefront of artificial intelligence for science (AI4Science), with significant progress made in recent years. 
+Deep Unknown Equations (DUE) is an open-source software package designed to facilitate the data-driven modeling of unknown equations using modern deep learning techniques. It is also applicable for surrogate modeling of complex known equations that are costly to solve using traditional numerical methods. DUE is distinguished by its simplicity, allowing users to model unknown equations with as few as 10 lines of code.
 
-Deep Unknown Equations (DUE) is an open-source software package designed to facilitate the data-driven modeling of unknown equations using modern deep learning techniques. This versatile framework is capable of learning unknown ordinary differential equations (ODEs), partial differential equations (PDEs), differential-algebraic equations (DAEs), integro-differential equations (IDEs), stochastic differential equations (SDEs), reduced or partially observed systems, and non-autonomous differential equations.
-
-DUE serves as an educational tool for classroom instruction, enabling students and newcomers to gain hands-on experience with differential equations, data-driven modeling, and contemporary deep learning approaches such as fully connected neural networks (FNN), residual neural networks (ResNet), generalized ResNet (gResNet), operator semigroup networks (OSG-Net), and Transformers from large language models (LLMs). Additionally, DUE is a versatile and accessible toolkit for researchers across various scientific and engineering fields. It is applicable not only for learning unknown equations from data but also for surrogate modeling of known, yet complex, equations that are costly to solve using traditional numerical methods. We provide detailed descriptions of DUE and demonstrate its capabilities through diverse examples, which serve as templates that can be easily adapted for other applications.
-
-DUE is developped based on the following works
+<p align="center">
+  <img width="1500" alt="" src="due.png">
+</p>
+<!-- DUE is developped based on the following works
 - Modeling unknown ordinary differential equations (ODE) by residual neural networks (ResNet) [[J. Comput. Phys.](https://doi.org/10.1016/j.jcp.2019.06.042)]
 - Approximating unknown ODEs and differential-algebraic equations (DAE) by polynomials [[J. Comput. Phys.](https://doi.org/10.1016/j.jcp.2019.01.030)]
 - Modeling unknown partial differential equations (PDE) in modal space [[J. Comput. Phys.](https://doi.org/10.1016/j.jcp.2020.109307)]
@@ -16,12 +15,24 @@ DUE is developped based on the following works
 - Modeling unknown PDEs and integro-differential equations (IDE) in nodal space [[J. Comput. Phys.](https://doi.org/10.1016/j.jcp.2021.110782)]
 - Learning operators in semigroup via deep learning [[J. Comput. Phys.](https://doi.org/10.1016/j.jcp.2023.112498)]
 - Modeling unknown stochastic differential equations (SDE) via flow map operator [[J. Comput. Phys.](https://doi.org/10.1016/j.jcp.2024.112984)]
-- Learning operators in PDEs by Position-induced Transformers [[ICML 2024](https://doi.org/10.48550/arXiv.2405.09285)]
+- Learning operators in PDEs by Position-induced Transformers [[ICML 2024](https://doi.org/10.48550/arXiv.2405.09285)] -->
 
 ## Installation
 
-DUE, along with all its dependencies, can be easily installed through running the 'setup.py' file:
+DUE, along with all its dependencies, can be installed through running the 'setup.py' script after cloning this repository:
 
 ``` sh
 $ python setup.py install
 ```
+
+## Usage
+
+The easiest way to get started with DUE is by running the provided templates in the ```examples/```. directory. To launch new learning tasks, simply modify these templates slightly and prepare custom datasets.
+
+- For time series data with a fixed time lag, prepare a ```.mat``` file containing an array named "trajectories" with size ```(N, d, T+1)```, where ```N``` is the number of collected trajectories, ```d``` is the number of state variabes, and ```T``` is the number of time steps per trajectory. An optional second dataset of size ```(N', d, T'+1)``` can be used for model evaluation after training.
+
+- For time series data with varying time lags, the ```.mat``` file should contain a second array named "dt" with size ```(N, T)```, storing the time step sizes between consecutive states.
+
+- For spatiotemporal data with a fixed time lag, one or two additional dimensions are required to account for spatial variability. Use size ```(N,L,d,T+1)``` for point cloud data, where ```L``` is the number of spatial sampling points. Use size ```(N,H,W,d,T+1)``` for 2D Cartesian grid data, where ```H``` and ```W``` are the grid dimensions. Besides, the ```.mat``` file should contain a "coordinates" array with size ```(L, 1)``` or ```(H, W, 2)```, storing the locations of the sampling points.
+
+- For spatiotemporal data with varying time lags, the ```.mat``` file should include a third array named "dt" with size ```(N, T)```, storing the time step sizes between consecutive snapshots.
