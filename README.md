@@ -33,6 +33,10 @@ The easiest way to get started with DUE is by running the provided templates in 
 
 - For time series data with varying time lags, the ```.mat``` file should contain a second array named "dt" with size ```(N, T)```, storing the time step sizes between consecutive states.
 
-- For spatiotemporal data with a fixed time lag, one or two additional dimensions are required to account for spatial variability. Use size ```(N,L,d,T+1)``` for point cloud data, where ```L``` is the number of spatial sampling points. Use size ```(N,H,W,d,T+1)``` for 2D Cartesian grid data, where ```H``` and ```W``` are the grid dimensions. Besides, the ```.mat``` file should contain a "coordinates" array with size ```(L, 1)``` or ```(H, W, 2)```, storing the locations of the sampling points.
+- For spatiotemporal data with a fixed time lag, one or two additional dimensions are required to account for spatial variability. Use size ```(N,L,d,T+1)``` for point cloud data, where ```L``` is the number of spatial sampling points. Use size ```(N,H,W,d,T+1)``` for 2D Cartesian grid data, where ```H``` and ```W``` are the grid dimensions. Besides, the ```.mat``` file should contain a "coordinates" array with size ```(L, 1)```, ```(L, 2)``` or ```(H, W, 2)```, storing the locations of the sampling points. Currently, DUE is applicable for 1D and 2D problems.
 
 - For spatiotemporal data with varying time lags, the ```.mat``` file should include a third array named "dt" with size ```(N, T)```, storing the time step sizes between consecutive snapshots.
+
+## Dataset
+
+All training and testing data for the demonstration examples can be downloaded <a href="https://drive.google.com/drive/folders/1efL-RR_H43Pe6P5BLtcEPFgz7ZmXnl5a?usp=sharing">here</a>.
