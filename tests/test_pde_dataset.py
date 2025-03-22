@@ -15,7 +15,7 @@ def config():
 
 @pytest.fixture
 def dummy_data_1d():
-    # Create dummy 1D regular data with a shape (N, L, D, T)
+    # Create dummy 1D PDE regular data with a shape (N, L, D, T)
     return {
         "coordinates": np.linspace(0, 1, 100).reshape(-1, 1),
         "trajectories": np.random.rand(5, 100, 3, 50)
@@ -23,7 +23,7 @@ def dummy_data_1d():
 
 @pytest.fixture
 def dummy_data_2d():
-    # Create dummy 2D regular data with a shape (N, H, W, D, T)
+    # Create dummy 2D PDE regular data with a shape (N, H, W, D, T)
     return {
         "coordinates": np.random.rand(50, 50, 2),
         "trajectories": np.random.rand(5, 50, 50, 3, 40)

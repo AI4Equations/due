@@ -13,7 +13,7 @@ def sample_data():
 
 @pytest.fixture
 def config():
-    # Sample configuration dictionary for training
+    # Configuration dictionary for training
     return {
         "seed": 42,
         "device": "cpu",
@@ -22,14 +22,13 @@ def config():
         "learning_rate": 0.001,
         "optimizer": "adam",
         "scheduler": "None",
-        "loss": "rel_l2_pde",  # Assuming you have a defined loss function
+        "loss": "rel_l2_pde", 
         "save_path": "./test_save",  # Temporary save path
         "verbose": 1,
     }
 
 @pytest.fixture
 def network():
-    # Initialize your neural network model
     config_net = {
         "memory": 2,
         "problem_dim": 2,
@@ -50,7 +49,7 @@ def network():
 def test_pde_training(sample_data, config, network):
     trainX, trainY = sample_data
     
-    # Create the PDE instance
+    # Create the PDE model instance
     pde_model = PDE(trainX, trainY, network, config)
 
     # Train the model

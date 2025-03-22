@@ -8,7 +8,7 @@ from due.models import ODE
 config_net = {
     "problem_dim": 5,
     "memory": 0,
-    "dtype": "single",  # Test with double precision
+    "dtype": "single",  # Test with single precision
     "depth": 2,
     "width": 16,
     "activation": "relu",

@@ -1,7 +1,7 @@
 import pytest
 from torch import from_numpy
 import numpy as np
-from due.networks.transformer import pit  # Adjust the import based on your project structure
+from due.networks.transformer import pit
 
 @pytest.fixture
 def setup_pit():
