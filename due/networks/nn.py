@@ -26,7 +26,7 @@ class nn(torch.nn.Module):
        
 class pit_fixdt(nn):
     
-     """Base class for Position-induced Transformers.
+    """Base class for Position-induced Transformers.
     
     Args:
         mesh1 (ndarray): The first mesh array of shape (L1, d).

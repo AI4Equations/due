@@ -5,9 +5,8 @@ import matplotlib.pyplot as plt
 from time import time
 from ..utils import *
 
-
 class ODE:
- """
+    """
     Class representing an Ordinary Differential Equation (ODE) model.
 
     Args:

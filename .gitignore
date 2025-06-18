@@ -2,6 +2,7 @@ build
 dist
 DUE.egg-info
 due/__pycache__
+due/*/__pycache__
 tests/__pycache__
 tests/test_save
 due/.DS_Store
