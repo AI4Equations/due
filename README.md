@@ -22,7 +22,7 @@ Deep Unknown Equations (DUE) is an open-source software package designed to faci
 DUE, along with all its dependencies, can be installed through running the 'setup.py' script after cloning this repository:
 
 ``` sh
-$ python setup.py install
+$ pip install .
 ```
 
 ## Usage
