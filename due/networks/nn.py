@@ -13,7 +13,7 @@ class nn(torch.nn.Module):
         return sum(v.numel() for v in self.parameters() if v.requires_grad)
         
     def load_params(self, save_path):
-        """Evaluate the number of trainable parameters for the NN."""
+        """Load the trained model for the NN."""
         return torch.load(save_path)
         
     def set_seed(self, seed):
