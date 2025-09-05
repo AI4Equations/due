@@ -227,12 +227,69 @@ class pde_dataset():
         print(data.shape, coords.shape)
         assert len(data.shape) >= 4
 
-        # Rest of the code...
+        if self.problem_type == "1d_regular":
+            N = data.shape[0]
+            L = data.shape[1]
+            assert coords.shape == (L,) or coords.shape == (L, 1) or coords.shape == (1, L)
+            coords = coords.reshape(L, 1)
+            D = data.shape[2]
+            T = data.shape[3]
+            print("One-dimensional regular dataset loaded, {} trajectories, {} grid points, {} variables, {} time instances".format(N, L, D, T))
+        elif self.problem_type == "2d_regular":
+            N = data.shape[0]
+            H = data.shape[1]
+            W = data.shape[2]
+            assert coords.shape == (H, W, 2)
+            D = data.shape[3]
+            T = data.shape[4]
+            print("Two-dimensional regular dataset loaded, {} trajectories, {} rows, {} columns, {} variables, {} time instances".format(N, H, W, D, T))
+        elif self.problem_type == "1d_irregular":
+            N = data.shape[0]
+            L = data.shape[1]
+            assert coords.shape == (L,) or coords.shape == (L, 1) or coords.shape == (1, L)
+            coords = coords.reshape(L, 1)
+            D = data.shape[2]
+            T = data.shape[3]
+            print("One-dimensional irregular dataset loaded, {} trajectories, {} collocation points, {} variables, {} time instances".format(N, L, D, T))
+        elif self.problem_type == "2d_irregular":
+            N = data.shape[0]
+            L = data.shape[1]
+            assert coords.shape == (L, 2)
+            D = data.shape[2]
+            T = data.shape[3]
+            print("Two-dimensional irregular dataset loaded, {} trajectories, {} collocation points, {} variables, {} time instances".format(N, L, D, T))
+        else:
+            raise ValueError("1D and 2D data collected on either uniform grids or unstructured meshes are supported. Make sure that your dataset is correctly organized. 3D problems are not yet supported")
+
+        max_Windows = T - self.memory_steps - self.multi_steps 
+        assert max_Windows > 0, f"Time steps T={T} is too small for memory_steps {M} and multi_steps {S}"
+
+        if self.nbursts > max_Windows:
+            print(f"Reducing nbursts from {self.nbursts} to {max_Windows} (time steps limit)")
+            self.nbursts = max_Windows
+
+        if self.problem_type in ["1d_regular", "1d_irregular", "2d_irregular"]:
+            trainX = np.zeros((N * self.nbursts, L, D, self.memory_steps + 1))  
+            trainY = np.zeros((N * self.nbursts, L, D, self.multi_steps))       
+        else:  
+            trainX = np.zeros((N * self.nbursts, H, W, D, self.memory_steps + 1))  
+            trainY = np.zeros((N * self.nbursts, H, W, D, self.multi_steps))      
+
+        for i in range(N):
+            if self.nbursts < max_Windows:
+                inits = np.random.randint(0, max_Windows, self.nbursts)
+            else:
+                inits = np.arange(max_Windows)
+        
+            trainX[i*self.nbursts:(i+1)*self.nbursts] = np.stack([data[i, ..., t:t+self.memory_steps+1] for t in inits])
+            trainY[i*self.nbursts:(i+1)*self.nbursts] = np.stack([data[i, ..., t+self.memory_steps+1:t+self.memory_steps+self.multi_steps+1] for t in inits])
+
+        print(f"Input shape (N,L,D,M+1): {trainX.shape}")
+        print(f"Output shape (N,L,D,S): {trainY.shape}")
 
         if file_path_test == None:
             return trainX.astype(self.dtype), trainY.astype(self.dtype), coords.astype(self.dtype)
         else:
-            # Load test set without normalization
             data_test = loadmat(file_path_test)
             data_test = data_test["trajectories"]
             return trainX.astype(self.dtype), trainY.astype(self.dtype), coords.astype(self.dtype), data_test.astype(self.dtype)
