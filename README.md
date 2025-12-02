@@ -39,4 +39,4 @@ The easiest way to get started with DUE is by running the provided templates in 
 
 ## Dataset
 
-All training and testing data for the demonstration examples can be downloaded via <a href="https://drive.google.com/drive/folders/1efL-RR_H43Pe6P5BLtcEPFgz7ZmXnl5a?usp=sharing">Google Drive</a> or <a href="https://drive.google.com/drive/folders/1efL-RR_H43Pe6P5BLtcEPFgz7ZmXnl5a?usp=sharing">Microsoft OneDrive</a>.
+All training and testing data for the demonstration examples can be downloaded via <a href="https://drive.google.com/drive/folders/1efL-RR_H43Pe6P5BLtcEPFgz7ZmXnl5a?usp=sharing">Google Drive</a> or <a href="[https://drive.google.com/drive/folders/1efL-RR_H43Pe6P5BLtcEPFgz7ZmXnl5a?usp=sharing](https://gohkust-my.sharepoint.com/:f:/g/personal/majfchen_ust_hk/EmLBCPrAYXdAm-zaRUNz7S0BkzSO5-JhoNDqSMV190bZMA?e=ZoEdGD)">Microsoft OneDrive</a>.
