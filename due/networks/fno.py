@@ -81,7 +81,7 @@ class osg_fno2d(nn):
     def forward(self, x):
         
         x0   = x[...,:-1]
-        dt   = x[...,-1:] * 0.5 * (self.tmax-self.tmin) + 0.5 * (self.tmax-self.tmin)
+        dt   = x[...,-1:] * 0.5 * (self.tmax-self.tmin) + 0.5 * (self.tmax+self.tmin)
         x = self.en(x)
         x = x.permute(0, 3, 1, 2)
 
