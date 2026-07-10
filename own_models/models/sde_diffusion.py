@@ -196,17 +196,26 @@ def extract_latents(x_targets, X_obs, Y_obs, config, verbose=True):
     Z1 is the initial Gaussian noise and Z0 is the corresponding label
     (Z0 = X_dt - x) needed to supervise the flow-map network.
     """
-    device = x_targets.device
-    X_obs = X_obs.to(device)
-    Y_obs = Y_obs.to(device)
-    dX_obs = Y_obs - X_obs
-
     num_timesteps = config.get("diffusion_timesteps", 100)
     d_tau = 1.0 / num_timesteps
     nu = config.get("nu", 1.0)
     chunk_size = config.get("chunk_size", 1000)
     subsample_ratio = config.get("subsample_ratio", 1.0)
     max_subset_size = config.get("max_subset_size", 1000)
+    increment_scale = float(config.get("increment_scale", 1.0))
+    ode_solver = str(config.get("ode_solver", "euler")).lower()
+    if not np.isfinite(increment_scale) or increment_scale <= 0:
+        raise ValueError("increment_scale must be a positive finite number.")
+    if ode_solver not in {"euler", "heun"}:
+        raise ValueError("ode_solver must be either 'euler' or 'heun'.")
+
+    device = x_targets.device
+    X_obs = X_obs.to(device)
+    Y_obs = Y_obs.to(device)
+    # Scaling only the physical increment improves conditioning near tau=0.
+    # Z1 and the conditioning state x stay unchanged; the result is converted
+    # back to physical units before returning below.
+    dX_obs = (Y_obs - X_obs) * increment_scale
 
     N = x_targets.shape[0]
 
@@ -258,8 +267,9 @@ def extract_latents(x_targets, X_obs, Y_obs, config, verbose=True):
 
     if verbose:
         print(f"Neighbor search complete in {time.time() - start_time:.2f} seconds.", flush=True)
-        print(f"Starting reverse-ODE integration for {N} targets (score chunk={score_chunk}) "
-              f"using the training-free score estimator...", flush=True)
+        print(f"Starting reverse-ODE integration for {N} targets (score chunk={score_chunk}, "
+              f"solver={ode_solver}, increment scale={increment_scale:g}) using the "
+              f"training-free score estimator...", flush=True)
         start_time = time.time()
 
     # 2. Reverse ODE Loop
@@ -278,17 +288,40 @@ def extract_latents(x_targets, X_obs, Y_obs, config, verbose=True):
         if verbose and (step % 10 == 0 or step == num_timesteps):
             print(f"  [ODE Step] tau = {tau:.2f} completed.")
 
-        # The Euler Step (Eq 3.24)
+        # Reverse probability-flow ODE drift (Eq. 3.23).
         tau_safe = min(tau, 1.0 - 1e-5)
         b_tau = -1.0 / (1.0 - tau_safe)
         sigma_sq_tau = (1.0 + tau_safe) / (1.0 - tau_safe)
+        drift = b_tau * z_current - 0.5 * sigma_sq_tau * score
 
-        z_current = z_current - (b_tau * z_current - 0.5 * sigma_sq_tau * score) * d_tau
+        if ode_solver == "euler":
+            z_current = z_current - drift * d_tau
+        else:
+            # Explicit trapezoidal / Heun step. The endpoint score is evaluated
+            # at the Euler predictor. At the final interval we keep the Euler
+            # predictor because the empirical score becomes singular at tau=0.
+            z_predict = z_current - drift * d_tau
+            if step == 1:
+                z_current = z_predict
+                continue
+            tau_next = max(tau - d_tau, 0.0)
+            score_next = score_from_neighbors(
+                z_current=z_predict,
+                dX_sub=dX_sub,
+                dX_sq=dX_sq,
+                log_weight_spatial=log_weight_spatial,
+                tau=tau_next,
+                chunk_size=score_chunk,
+            )
+            b_next = -1.0 / (1.0 - tau_next)
+            sigma_sq_next = (1.0 + tau_next) / (1.0 - tau_next)
+            drift_next = b_next * z_predict - 0.5 * sigma_sq_next * score_next
+            z_current = z_current - 0.5 * (drift + drift_next) * d_tau
 
     if verbose:
         print(f"Extraction complete in {time.time() - start_time:.2f} seconds.", flush=True)
 
-    return z_initial, z_current
+    return z_initial, z_current / increment_scale
 
 
 def generate_labeled_data(trainX, trainY, config, vmin, vmax):

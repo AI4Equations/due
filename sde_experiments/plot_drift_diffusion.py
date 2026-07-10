@@ -153,7 +153,7 @@ def plot_one(name, experiment_dir, dataset, n_samples, n_grid, device, dt_overri
     axes[0].set_ylabel("drift")
     axes[0].set_title(f"{name}: Drift a(x)")
     axes[0].legend()
-    axes[0].set_ylim(-0.8, 0.6)
+    axes[0].set_ylim(-0.85, 0.75)
 
     axes[1].plot(x_grid, b_true, color="blue", label="True b(x)")
     axes[1].plot(x_grid, b_hat, color="red", linestyle="--", marker=".", label="Model b_hat(x)")
@@ -188,9 +188,9 @@ def main():
                               " (case-insensitive, '_continued' suffix stripped). Required if it "
                               "can't be inferred, and only usable when --results-dir is a single "
                               "experiment (not a root with multiple subfolders).")
-    parser.add_argument("--n-samples", type=int, default=5000,
+    parser.add_argument("--n-samples", type=int, default=500000,
                          help="Monte Carlo samples (fresh z draws) per x grid point.")
-    parser.add_argument("--n-grid", type=int, default=40,
+    parser.add_argument("--n-grid", type=int, default=500,
                          help="Number of x grid points spanning the model's own [vmin, vmax].")
     parser.add_argument("--device", default="cpu")
     parser.add_argument("--dt", type=float, default=None,

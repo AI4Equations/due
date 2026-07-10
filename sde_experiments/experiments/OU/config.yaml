@@ -36,8 +36,11 @@ training:
 
 diffusion:
     diffusion_timesteps: 10000 # K in Eq. 3.24 (paper uses 10,000); raised for overnight fidelity (linear cost)
+    increment_scale: 10.0 # precondition one-step increments during reverse-ODE integration; converted back before training
+    ode_solver: "euler" # "euler" reproduces the author's OU setup; switch to "heun" for a 2nd-order comparison
     nu: 1.0 # bandwidth of the Gaussian posterior in Eq. 3.13
     chunk_size: 1000 # query-axis batch size for the KD-tree neighbor search (memory/progress-reporting tradeoff; database axis no longer needs manual chunking)
+    score_chunk_size: 500000 # query-axis batch size for the score estimation (memory/progress-reporting tradeoff)
     max_subset_size: 1000 # caps the neighbor subset independent of the 1%-of-M rule; bounds the cached (N x subset_size) tensors to O(N) instead of O(N^2)
     subsample_ratio: 1.0 # fraction of D_obs used per score estimate (1.0 = paper's setting)
     cache_latents: false # set true to reuse a previously extracted_latents.pt
