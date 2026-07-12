@@ -188,7 +188,7 @@ def main():
                               " (case-insensitive, '_continued' suffix stripped). Required if it "
                               "can't be inferred, and only usable when --results-dir is a single "
                               "experiment (not a root with multiple subfolders).")
-    parser.add_argument("--n-samples", type=int, default=500000,
+    parser.add_argument("--n-samples", type=int, default=1000000,
                          help="Monte Carlo samples (fresh z draws) per x grid point.")
     parser.add_argument("--n-grid", type=int, default=500,
                          help="Number of x grid points spanning the model's own [vmin, vmax].")
