@@ -1,0 +1,3 @@
+name,status,n_train,n_test,predict_steps,train_loss,val_loss,mean_err,std_err,gen_time_s,train_time_s
+DoubleWell,FAILED,,,,,,,,,
+GBM,ok,2500000,50000,50,2.0351558305264916e-07,1.9127986661260366e-07,0.08660808205604553,3.734365224838257,183043.7932188511,61815.442447185516

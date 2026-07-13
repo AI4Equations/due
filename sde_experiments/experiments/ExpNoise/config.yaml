@@ -1,0 +1,47 @@
+seed: 42
+
+dtype: single
+
+data:
+    problem_type: sde
+    nbursts: 50 # number of (x, dx) bursts sampled per trajectory
+    memory: 0 # SDEs are Markovian; only the current state X_t is needed
+    multi_steps: 1 # the flow map only defines a single-step transition
+    problem_dim: 1
+    dt: 0.01 # Delta t used when the dataset was generated (for plotting)
+
+    # --- batch-runner-specific keys (read by run_experiments.py) ---
+    # ExpNoise is a large dataset (100k train trajectories, 50k test trajectories) with
+    # non-Gaussian (exponential) noise, so keep the train fraction small and cap the
+    # number of test trajectories used for evaluation.
+    train_file: simulated_data/1d_exp_noise_process_train.mat   # path relative to repo root
+    test_file: simulated_data/1d_exp_noise_process_test.mat
+    train_fraction: 0.05 # ~100k of 5.0M bursts (overnight target)
+    test_fraction: 1  # 50k test trajectories is plenty; evaluate on a subset (~2500)
+    max_predict_steps: 0
+
+network:
+    depth: 1 # number of hidden layers
+    width: 256 # number of neurons
+    activation: "gelu"
+
+training:
+    device: "cpu" # "cpu", "cuda"
+    valid: 0.1
+    epochs: 100
+    batch_size: 128
+    optimizer: "adam"
+    scheduler: "cosine" # "cosine", "none", "cyclic_cosine"
+    learning_rate: 0.001
+    verbose: 10 # print loss every verbose epochs
+    loss: "mse"
+    save_path: "./sde_diffusion_output" # overridden per-experiment by the runner
+
+diffusion:
+    diffusion_timesteps: 1000 # K in Eq. 3.24 (paper uses 10,000); raised for overnight fidelity (linear cost)
+    nu: 1.0 # bandwidth of the Gaussian posterior in Eq. 3.13
+    chunk_size: 1000 # query-axis batch size for the KD-tree neighbor search (memory/progress-reporting tradeoff; database axis no longer needs manual chunking)
+    max_subset_size: 250 # caps the neighbor subset independent of the 1%-of-M rule; bounds the cached (N x subset_size) tensors to O(N) instead of O(N^2)
+    subsample_ratio: 1.0 # fraction of D_obs used per score estimate (1.0 = paper's setting)
+    cache_latents: false # set true to reuse a previously extracted_latents.pt
+    num_threads: 8 # optional CPU thread count for label generation; 8 = logical cores on this machine (~1.3x faster in benchmarks). Remove/tune for other machines.

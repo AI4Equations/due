@@ -128,14 +128,31 @@ def run_one(name, config_path, results_dir, overrides, latent_cache_root=None):
     train_time = time.time() - t0
     model.save_hist()
 
-    # Final losses from the training history tensor (see due.models.ODE).
+    # Reload the checkpoint selected by due.models.ODE so every downstream
+    # evaluation uses the same validation-best (or train-best) network that was
+    # saved to disk, rather than the in-memory weights from the final epoch.
     hist = model.hist
-    train_loss = float(hist[-1, 0])
-    val_loss = float(hist[-1, 1]) if model.do_validation else float("nan")
+    selection_col = 1 if model.do_validation else 0
+    best_idx = int(torch.argmin(hist[:, selection_col]).item())
+    train_loss = float(hist[best_idx, 0])
+    val_loss = float(hist[best_idx, 1]) if model.do_validation else float("nan")
+    checkpoint_path = os.path.join(save_path, "model")
+    # Load on CPU because SDEResNet normalizes CPU inputs with its stored
+    # vmin/vmax before predict() moves the network/input to the requested device.
+    mynet = torch.load(checkpoint_path, map_location="cpu", weights_only=False)
+    mynet.eval()
+    selection_name = "validation" if model.do_validation else "training"
+    print(f"[{name}] Evaluating best checkpoint from epoch {best_idx + 1} "
+          f"({selection_name} loss={float(hist[best_idx, selection_col]):.6e}).")
 
     # --- Predict + evaluate ---
     full_steps = test_set.shape[-1] - (conf_data["memory"] + 1)
     steps_to_predict = full_steps if not max_predict_steps else min(full_steps, int(max_predict_steps))
+    eval_seed = int(conf_train.get("seed", 0))
+    np.random.seed(eval_seed)
+    torch.manual_seed(eval_seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(eval_seed)
     pred = mynet.predict(test_set[..., :conf_data["memory"] + 1], steps_to_predict, device=conf_train["device"])
 
     # Truncate the ground truth to the same horizon so the evaluation aligns.
