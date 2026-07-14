@@ -157,7 +157,12 @@ def run_one(name, config_path, results_dir, overrides, latent_cache_root=None):
 
     # Truncate the ground truth to the same horizon so the evaluation aligns.
     truth = test_set[..., :steps_to_predict + conf_data["memory"] + 1]
-    metrics = own_models.utils.sde_evaluate(pred, truth, save_path=save_path, dt=conf_data.get("dt", 0.01))
+    # 1D spaghetti plots are uninformative once the state is multi-dimensional,
+    # so dispatch to the phase-space/marginal/spectral evaluation for problem_dim > 1.
+    if pred.shape[1] > 1:
+        metrics = own_models.utils.sde_evaluate_multidim(pred, truth, save_path=save_path, dt=conf_data.get("dt", 0.01))
+    else:
+        metrics = own_models.utils.sde_evaluate(pred, truth, save_path=save_path, dt=conf_data.get("dt", 0.01))
 
     return {
         "name": name,

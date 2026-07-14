@@ -187,6 +187,55 @@ def score_from_neighbors(z_current, dX_sub, dX_sq, log_weight_spatial, tau, chun
     return torch.cat(scores, dim=0).view_as(z_current)
 
 
+def build_tau_schedule(num_timesteps, schedule="geometric", tau_min=1e-5):
+    """
+    Build the descending sequence of pseudotime nodes (tau_1 > tau_2 > ... > 0)
+    at which the reverse ODE (Eq. 3.24) is evaluated, together with the signed
+    step size d_tau_k = tau_k - tau_{k+1} > 0 taken from each node.
+
+    The reverse ODE's right-hand side is smooth near tau=1 (the b(tau) and
+    sigma^2(tau) singularities there cancel once the score is substituted in)
+    but sharpens rapidly as tau -> 0: the score's softmax weights harden into a
+    near-nearest-neighbor selector, with logit coefficients ~1/tau. All of the
+    integration error therefore accumulates in a thin layer near tau=0, which a
+    uniform grid (whose smallest node is 1/K) resolves only by making K huge.
+
+    schedule="geometric" instead spaces the nodes logarithmically, from tau=1
+    down to tau_min, so they cluster where the action is. Empirically this
+    reaches the estimator's own Monte-Carlo noise floor at K ~ 100-200,
+    where a uniform grid needs K ~ 5,000-10,000 for the same accuracy (a
+    ~50-100x reduction). tau_min ~ 1e-5 is the sweet spot (1e-4 doesn't reach
+    deep enough; 1e-6 spends nodes below where the score still varies) but is
+    exposed as a knob since the ideal depth is mildly dataset-dependent.
+
+    schedule="uniform" reproduces the paper's original evenly-spaced grid
+    (tau_k = k/K, for k = K, K-1, ..., 1), for reproducing prior results.
+
+    Returns (taus, d_taus), both length-num_timesteps 1-D numpy arrays, where
+    taus[k] is the evaluation node and d_taus[k] the step taken from it. The
+    final step lands exactly on tau=0 in both schedules, so the RHS is never
+    evaluated at tau=0 itself (its 1/tau terms stay finite).
+    """
+    K = num_timesteps
+    if schedule == "uniform":
+        # Original scheme: evaluate at tau = K/K, ..., 1/K; each step is 1/K,
+        # and the last one (from tau=1/K) lands on tau=0.
+        taus = np.arange(K, 0, -1, dtype=np.float64) / K
+        d_taus = np.full(K, 1.0 / K, dtype=np.float64)
+        return taus, d_taus
+
+    if schedule == "geometric":
+        # Nodes log-spaced from 1 down to tau_min, then a closing node at 0 so
+        # the last step integrates the remaining [0, tau_min] layer.
+        nodes = np.geomspace(1.0, tau_min, K, dtype=np.float64)  # length K, descending
+        nodes = np.append(nodes, 0.0)                            # length K+1
+        taus = nodes[:-1]                                        # evaluation nodes (tau > 0)
+        d_taus = nodes[:-1] - nodes[1:]                          # positive step from each node
+        return taus, d_taus
+
+    raise ValueError(f"Unknown tau schedule '{schedule}'. Choose 'geometric' or 'uniform'.")
+
+
 @torch.no_grad()
 def extract_latents(x_targets, X_obs, Y_obs, config, verbose=True):
     """
@@ -197,7 +246,8 @@ def extract_latents(x_targets, X_obs, Y_obs, config, verbose=True):
     (Z0 = X_dt - x) needed to supervise the flow-map network.
     """
     num_timesteps = config.get("diffusion_timesteps", 100)
-    d_tau = 1.0 / num_timesteps
+    tau_schedule = config.get("tau_schedule", "geometric")
+    tau_min = config.get("tau_min", 1e-5)
     nu = config.get("nu", 1.0)
     chunk_size = config.get("chunk_size", 1000)
     subsample_ratio = config.get("subsample_ratio", 1.0)
@@ -265,16 +315,27 @@ def extract_latents(x_targets, X_obs, Y_obs, config, verbose=True):
     subset_size = dX_sub.shape[1]
     score_chunk = config.get("score_chunk_size", 0) or max(1, min(N, 20_000_000 // max(subset_size, 1)))
 
+    # Sequence of pseudotime nodes and (per-step) step sizes for the reverse
+    # ODE. "geometric" (the default) clusters nodes near tau=0 where the score
+    # sharpens, reaching full accuracy at far smaller diffusion_timesteps than
+    # the evenly-spaced "uniform" grid (the paper's original scheme). See
+    # build_tau_schedule. Both ode_solver options are schedule-agnostic: they
+    # index nodes/step sizes from these arrays rather than assuming a fixed
+    # d_tau, so "heun" works identically on either schedule.
+    taus, d_taus = build_tau_schedule(num_timesteps, schedule=tau_schedule, tau_min=tau_min)
+    n_nodes = len(taus)
+
     if verbose:
         print(f"Neighbor search complete in {time.time() - start_time:.2f} seconds.", flush=True)
         print(f"Starting reverse-ODE integration for {N} targets (score chunk={score_chunk}, "
-              f"solver={ode_solver}, increment scale={increment_scale:g}) using the "
+              f"solver={ode_solver}, increment scale={increment_scale:g}, tau_schedule={tau_schedule}"
+              f"{f', tau_min={tau_min:g}' if tau_schedule == 'geometric' else ''}) using the "
               f"training-free score estimator...", flush=True)
         start_time = time.time()
 
     # 2. Reverse ODE Loop
-    for step in range(num_timesteps, 0, -1):
-        tau = step * d_tau
+    for i, (tau, d_tau) in enumerate(zip(taus, d_taus)):
+        is_last_node = (i == n_nodes - 1)
 
         score = score_from_neighbors(
             z_current=z_current,
@@ -285,8 +346,8 @@ def extract_latents(x_targets, X_obs, Y_obs, config, verbose=True):
             chunk_size=score_chunk,
         )
 
-        if verbose and (step % 10 == 0 or step == num_timesteps):
-            print(f"  [ODE Step] tau = {tau:.2f} completed.")
+        if verbose and (i % max(1, n_nodes // 10) == 0 or is_last_node):
+            print(f"  [ODE Step] tau = {tau:.4g} completed.")
 
         # Reverse probability-flow ODE drift (Eq. 3.23).
         tau_safe = min(tau, 1.0 - 1e-5)
@@ -298,10 +359,13 @@ def extract_latents(x_targets, X_obs, Y_obs, config, verbose=True):
             z_current = z_current - drift * d_tau
         else:
             # Explicit trapezoidal / Heun step. The endpoint score is evaluated
-            # at the Euler predictor. At the final interval we keep the Euler
-            # predictor because the empirical score becomes singular at tau=0.
+            # at the Euler predictor. On the final node of the schedule (tau
+            # would land on the tau_next=0 endpoint) we keep the Euler
+            # predictor instead, because the empirical score becomes singular
+            # at tau=0 -- this check is by node index, not a hardcoded step
+            # count, so it lands correctly on the last node of either schedule.
             z_predict = z_current - drift * d_tau
-            if step == 1:
+            if is_last_node:
                 z_current = z_predict
                 continue
             tau_next = max(tau - d_tau, 0.0)

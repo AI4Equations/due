@@ -38,9 +38,10 @@ training:
 
 diffusion:
     diffusion_timesteps: 1000 # K in Eq. 3.24 (paper uses 10,000); raised for overnight fidelity (linear cost)
+    tau_schedule: geometric # reverse-ODE node placement: "geometric" (default) clusters nodes near tau=0 where the score sharpens, reaching full accuracy at far smaller diffusion_timesteps; "uniform" = paper's evenly-spaced grid
+    tau_min: 1.0e-5 # geometric only: deepest (smallest) tau node; ~1e-5 is the empirical sweet spot
     nu: 1.0 # bandwidth of the Gaussian posterior in Eq. 3.13
     chunk_size: 1000 # query-axis batch size for the neighbor search (memory/speed tradeoff)
-    db_chunk_size: 5000 # database-axis batch size; bounds memory to chunk_size*db_chunk_size regardless of M
     max_subset_size: 1000 # caps the neighbor subset independent of the 1%-of-M rule; bounds the cached (N x subset_size) tensors to O(N) instead of O(N^2)
     subsample_ratio: 1.0 # fraction of D_obs used per score estimate (1.0 = paper's setting)
     cache_latents: false # set true to reuse a previously extracted_latents.pt

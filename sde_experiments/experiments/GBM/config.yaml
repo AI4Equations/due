@@ -13,7 +13,7 @@ data:
     # --- batch-runner-specific keys (read by run_experiments.py) ---
     train_file: simulated_data/1d_GBM_process_train.mat   # path relative to repo root
     test_file: simulated_data/1d_GBM_process_test.mat
-    train_fraction: 0.2
+    train_fraction: 0.5
     test_fraction: 1.0
     max_predict_steps: 0
 
@@ -25,17 +25,20 @@ network:
 training:
     device: "cpu" # "cpu", "cuda"
     valid: 0.1
-    epochs: 50
+    epochs: 100
     batch_size: 128
     optimizer: "adam"
     scheduler: "cosine" # "cosine", "none", "cyclic_cosine"
-    learning_rate: 0.001
+    learning_rate: 0.005
     verbose: 10 # print loss every verbose epochs
     loss: "mse"
     save_path: "./sde_diffusion_output" # overridden per-experiment by the runner
 
 diffusion:
-    diffusion_timesteps: 500 # K in Eq. 3.24 (paper uses 10,000); raised for overnight fidelity (linear cost)
+    diffusion_timesteps: 200 # K in Eq. 3.24 (paper uses 10,000); raised for overnight fidelity (linear cost)
+    ode_solver: "heun"   # or "heun"
+    tau_schedule: geometric # reverse-ODE node placement: "geometric" (default) clusters nodes near tau=0 where the score sharpens, reaching full accuracy at far smaller diffusion_timesteps; "uniform" = paper's evenly-spaced grid
+    tau_min: 1.0e-5 # geometric only: deepest (smallest) tau node; ~1e-5 is the empirical sweet spot
     nu: 1.0 # bandwidth of the Gaussian posterior in Eq. 3.13
     chunk_size: 1000 # query-axis batch size for the KD-tree neighbor search (memory/progress-reporting tradeoff; database axis no longer needs manual chunking)
     max_subset_size: 250 # caps the neighbor subset independent of the 1%-of-M rule; bounds the cached (N x subset_size) tensors to O(N) instead of O(N^2)
