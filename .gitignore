@@ -12,3 +12,6 @@ examples/*/model
 examples/*/prior_model
 *.mat
 results/
+sde_results/
+examples_results/
+__pycache__/
