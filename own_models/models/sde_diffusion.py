@@ -347,7 +347,7 @@ def extract_latents(x_targets, X_obs, Y_obs, config, verbose=True):
         )
 
         if verbose and (i % max(1, n_nodes // 10) == 0 or is_last_node):
-            print(f"  [ODE Step] tau = {tau:.4g} completed.")
+            print(f"  ODE Step {i}, tau = {tau:.4g} completed.")
 
         # Reverse probability-flow ODE drift (Eq. 3.23).
         tau_safe = min(tau, 1.0 - 1e-5)
