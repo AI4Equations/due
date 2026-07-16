@@ -16,3 +16,6 @@ sde_results/
 examples_results/
 __pycache__/
 examples/model
+sde_diffusion_output/
+__pycache__/
+due_data

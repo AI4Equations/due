@@ -1,0 +1,52 @@
+seed: 42
+
+dtype: single
+
+data:
+    problem_type: sde
+    nbursts: 100 # number of (x, dx) bursts sampled per trajectory
+    memory: 0 # SDEs are Markovian; only the current state X_t is needed
+    multi_steps: 1 # the flow map only defines a single-step transition
+    problem_dim: 1
+    dt: 0.01 # Delta t used when the dataset was generated (for plotting)
+
+    train_file: 1d_OU_process_train.mat   # path relative to this folder (OU.py expects the .mat files alongside it)
+    test_file: 1d_OU_process_test.mat
+
+network:
+    depth: 1 # number of hidden layers
+    width: 512 # number of neurons
+    activation: "gelu"
+
+training:
+    device: "cpu" # "cpu", "cuda"
+    valid: 0.2
+    epochs: 100
+    batch_size: 128
+    optimizer: "adam"
+    scheduler: "cosine" # "cosine", "none", "cyclic_cosine"
+    learning_rate: 0.01
+    verbose: 20 # print loss every verbose epochs
+    loss: "mse"
+    save_path: "./sde_diffusion_output" # overridden per-experiment by the runner
+
+diffusion:
+    diffusion_timesteps: 200 # Time steps when numerically solving the ODE for data training generation
+    label_fraction: 0.0333 # fraction of the loaded data to run the reverse ODE for 
+    tau_schedule: uniform # reverse-ODE node placement: "uniform" (default) = the original evenly-spaced grid; "geometric" clusters nodes near tau=0 where the score sharpens, reaching full accuracy at far smaller diffusion_timesteps
+    tau_min: 1.0e-5 # geometric only: deepest (smallest) tau node; ~1e-5 is the empirical sweet spot
+    increment_scale: 50.0 # precondition one-step increments during reverse-ODE integration; converted back before training
+    ode_solver: "heun" # "euler" reproduces the author's OU setup; switch to "heun" for a 2nd-order comparison
+    nu: 1.0 # spatial kernel bandwidth for the Gaussian neighbor weighting (larger = smoother/more averaged score estimate)
+    max_subset_size: 2000 # caps the neighbor subset independent of the 1%-of-M rule; bounds the cached (N x subset_size) tensors to O(N) instead of O(N^2)
+    cache_latents: false # set true to reuse a previously extracted_latents.pt
+    num_threads: 8 # optional CPU thread count for label generation; 8 = logical cores on this machine (~1.3x faster in benchmarks). Remove/tune for other machines.
+
+plotting:
+    n_paths: 100 # number of individual trajectories drawn in the eval "spaghetti" plot
+    drift_diffusion_n_samples: 100000 # Monte Carlo samples per grid point for the drift/diffusion estimate. Low values here risk misleading plots
+    drift_diffusion_n_grid: 100 # number of x grid points spanning the drift/diffusion sweep
+    # --- drift/diffusion axis settings (all optional; delete a line to auto-scale that axis) ---
+    drift_diffusion_x_range: [0.5, 2.0] # [x_min, x_max] to sweep; omit for the model's own [vmin, vmax]
+    drift_ylim: [-0.85, 0.75] # [lo, hi] y-limits for the drift subplot; omit for matplotlib auto-scale
+    diffusion_ylim: [0.27, 0.33] # [lo, hi] y-limits for the diffusion subplot; omit for matplotlib auto-scale

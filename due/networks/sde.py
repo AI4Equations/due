@@ -6,26 +6,22 @@ from due.utils import get_activation
 class SDEResNet(affine):
     """
     Conditional generative network G_theta(x, z) approximating the stochastic
-    flow map F_dt(x, omega) of Eq. (2.3)-(2.4) in the paper.
+    flow map F_dt(x, omega): given the current state x and a fresh Gaussian
+    noise draw z, predicts the state one step (Delta t) later.
 
     Unlike due.networks.fcn.resnet (which maps x -> x + mlp(x)), this network's
     input is the concatenation of the physical state x (with its memory
     embedding, if any) and a standard normal draw z, flattened along the last
     axis: [x, z] with shape (..., input_dim + output_dim). The residual
-    connection only adds back the *physical state* (the most recent memory
-    step), never the noise, matching the paper's supervised flow-map training
-    (Section 3.3): G_theta(x, z) = mlp([x, z]) + x.
+    connection only adds back the physical state, never the noise:
+    G_theta(x, z) = mlp([x, z]) + x.
 
-    Built directly on due.networks.fcn.affine so it inherits vmin/vmax
-    denormalization, the seeding convention, and count_params()/load_params()
-    for free, and can be constructed and trained exactly like any other DUE
-    network: SDEResNet(vmin, vmax, config), then due.models.ODE(...).
+    Built on due.networks.fcn.affine, constructed and trained like any other
+    DUE network: SDEResNet(vmin, vmax, config), then due.models.ODE(...).
     """
 
     def __init__(self, vmin, vmax, config):
         super().__init__(vmin, vmax, config)
-        # affine.__init__ already set: self.dtype, self.memory, self.output_dim,
-        # self.input_dim = output_dim * (memory + 1)  (the physical-state condition x)
 
         self.depth = config["depth"]
         self.width = config["width"]
@@ -71,11 +67,9 @@ class SDEResNet(affine):
         x : unnormalized initial conditions. Numpy array (N, output_dim, memory+1)
         output: unnormalized generated trajectories. Numpy array (N, output_dim, steps+memory+1)
 
-        At every step, a fresh z ~ N(0, I) is drawn and concatenated with the
-        current physical state before calling forward(), exactly as required
-        by the conditional generative model G_theta(x, z) (Eq. 2.4): the
-        stochastic flow map has a genuinely random forward evolution, so the
-        noise cannot be fixed or reused across steps or samples.
+        A fresh z ~ N(0, I) is drawn and concatenated with the current
+        physical state at every step, since the stochastic flow map has a
+        genuinely random forward evolution.
         """
         self.to(device)
         assert x.shape[1] == self.output_dim
