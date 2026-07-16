@@ -96,24 +96,48 @@ def run_one(name, config_path, results_dir, overrides, latent_cache_root=None):
     # generate_labeled_data only ever looks for extracted_latents.pt inside this
     # experiment's own save_path (results_dir/name), which starts empty every time
     # results_dir is fresh -- e.g. after archiving a previous results/ directory
-    # elsewhere (say to ../sde_results/resultsN/) to keep multiple runs around. Look
-    # in latent_cache_root/name/ for a cache to reuse instead, if given, validating
-    # the row count before trusting it (a cache from a different train_fraction or
-    # dataset won't match trainX here). generate_labeled_data validates this too, but
-    # checking here as well lets us report it per-experiment before the fact.
+    # elsewhere (say to ../sde_results/resultsN/, or renaming it to note the run's
+    # settings) to keep multiple runs around. Look for a cache to reuse instead, if
+    # --latent-cache-root is given, validating the row count before trusting it (a
+    # cache from a different train_fraction or dataset won't match trainX here).
+    # generate_labeled_data validates this too, but checking here as well lets us
+    # report it per-experiment before the fact.
+    #
+    # Two lookup conventions are tried, so the same flag works for both a single
+    # renamed experiment folder and a batch root:
+    #   1. <latent_cache_root>/extracted_latents.pt directly -- for pointing
+    #      straight at one archived experiment folder (however it's named), e.g.
+    #      --latent-cache-root results/CoupledVdP_1x512_100epochs
+    #   2. <latent_cache_root>/<name>/extracted_latents.pt -- for pointing at a
+    #      root containing one subfolder per experiment name (the original
+    #      convention, still needed when running more than one experiment at once
+    #      since only this form can vary per experiment).
     if latent_cache_root is not None:
         resolved_latent_file = os.path.join(save_path, "extracted_latents.pt")
-        candidate = os.path.join(latent_cache_root, name, "extracted_latents.pt")
-        if not os.path.exists(resolved_latent_file) and os.path.exists(candidate):
+        direct_candidate = os.path.join(latent_cache_root, "extracted_latents.pt")
+        nested_candidate = os.path.join(latent_cache_root, name, "extracted_latents.pt")
+        candidate = direct_candidate if os.path.exists(direct_candidate) else nested_candidate
+
+        # generate_labeled_data only labels a random label_fraction of trainX (see
+        # its docstring), so the cache's expected row count is that subset's size,
+        # not trainX.shape[0] directly.
+        label_fraction = float(conf_train.get("label_fraction", 1.0))
+        expected_rows = max(1, round(label_fraction * trainX.shape[0])) if label_fraction < 1.0 else trainX.shape[0]
+
+        if os.path.exists(resolved_latent_file):
+            pass  # already resolved (e.g. a prior run already populated save_path); leave it alone
+        elif os.path.exists(candidate):
             cached_Z1, _ = torch.load(candidate, map_location="cpu")
-            if cached_Z1.shape[0] == trainX.shape[0]:
+            if cached_Z1.shape[0] == expected_rows:
                 print(f"[{name}] Reusing cached latents from {candidate} ({cached_Z1.shape[0]} rows, matches).")
                 shutil.copy(candidate, resolved_latent_file)
                 conf_train["cache_latents"] = True
             else:
                 print(f"[{name}] Found a latent cache at {candidate}, but it has {cached_Z1.shape[0]} rows "
-                      f"vs. {trainX.shape[0]} in the current training data (likely a different "
-                      f"train_fraction or dataset) -- ignoring it and re-extracting.")
+                      f"vs. {expected_rows} expected (likely a different train_fraction, label_fraction, "
+                      f"or dataset) -- ignoring it and re-extracting.")
+        else:
+            print(f"[{name}] No latent cache found at {direct_candidate} or {nested_candidate} -- extracting fresh.")
 
     # --- Generate labeled data via the reverse ODE (Algorithm 3.1) ---
     t0 = time.time()
@@ -225,11 +249,14 @@ def main():
     parser.add_argument("--epochs", type=int, default=None,
                         help="Override training epochs for all experiments (handy for smoke runs).")
     parser.add_argument("--latent-cache-root", default=None,
-                        help="Root directory containing archived <name>/extracted_latents.pt files "
-                             "to reuse per experiment (e.g. an old results/ directory you renamed "
-                             "elsewhere after a previous run, since a fresh --results-dir starts "
-                             "empty). Row count must match the current training data or it's "
-                             "ignored and re-extracted fresh.")
+                        help="Where to look for an archived extracted_latents.pt to reuse (a fresh "
+                             "--results-dir starts empty, so this is for resuming from a previous "
+                             "run's cache). Accepts either: the exact folder that directly contains "
+                             "extracted_latents.pt (e.g. an experiment folder you renamed to note its "
+                             "settings, --latent-cache-root results/CoupledVdP_1x512_100epochs); or a "
+                             "root directory containing one <name>/extracted_latents.pt per experiment "
+                             "(needed when running more than one experiment at once). Row count must "
+                             "match the current training data or it's ignored and re-extracted fresh.")
     args = parser.parse_args()
 
     only = set(s.strip() for s in args.only.split(",")) if args.only else None

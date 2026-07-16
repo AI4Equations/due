@@ -38,6 +38,10 @@ training:
 
 diffusion:
     diffusion_timesteps: 1000 # K in Eq. 3.24 (paper uses 10,000); raised for overnight fidelity (linear cost)
+    label_fraction: 1.0 # fraction of the loaded data to run the reverse ODE for / train on (paper labels
+    # only ~50-60k of its much larger D_obs); the neighbor-search database always uses the full loaded
+    # data regardless of this value. Lower this (not train_fraction) to cut label-generation cost/memory
+    # without degrading the score.
     tau_schedule: geometric # reverse-ODE node placement: "geometric" (default) clusters nodes near tau=0 where the score sharpens, reaching full accuracy at far smaller diffusion_timesteps; "uniform" = paper's evenly-spaced grid
     tau_min: 1.0e-5 # geometric only: deepest (smallest) tau node; ~1e-5 is the empirical sweet spot
     nu: 1.0 # bandwidth of the Gaussian posterior in Eq. 3.13

@@ -194,6 +194,7 @@ def estimate_model_drift_diffusion_multidim(net, X_points, dt, n_samples, device
 def _plot_1d(name, experiment_dir, net, sde, dt, n_samples, n_grid, device):
     vmin, vmax = float(net.vmin.ravel()[0]), float(net.vmax.ravel()[0])
 
+    # x_grid = np.linspace(0.5, 2, n_grid, dtype=np.float32)
     x_grid = np.linspace(0.3, 0.9, n_grid, dtype=np.float32)
     a_hat, b_hat = estimate_model_drift_diffusion(net, x_grid, dt, n_samples, device)
     a_true = sde["a"](x_grid, dt)
@@ -215,6 +216,7 @@ def _plot_1d(name, experiment_dir, net, sde, dt, n_samples, n_grid, device):
     axes[1].set_title(f"{name}: Diffusion b(x)")
     axes[1].legend()
     # axes[1].set_ylim(0.27, 0.33)
+    axes[1].set_ylim(0.09, 0.11)
 
     fig.suptitle(sde["eq_label"], fontsize=9)
     plt.tight_layout()
@@ -344,9 +346,9 @@ def main():
                               "folder name if it matches one of: " + ", ".join(SDE_DEFS.keys()) +
                               " (case-insensitive). Required if it can't be inferred, and only "
                               "usable when --results-dir is a single experiment.")
-    parser.add_argument("--n-samples", type=int, default=5000,
+    parser.add_argument("--n-samples", type=int, default=100000,
                          help="Monte Carlo samples (fresh z draws) per evaluated state.")
-    parser.add_argument("--n-grid", type=int, default=40,
+    parser.add_argument("--n-grid", type=int, default=100,
                          help="Number of grid points per coordinate sweep.")
     parser.add_argument("--field-grid", type=int, default=14,
                          help="(multi-D) grid resolution per axis for the phase-plane drift quiver.")

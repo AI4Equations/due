@@ -279,7 +279,10 @@ def extract_latents(x_targets, X_obs, Y_obs, config, verbose=True):
     # optimization (Section 3.2, footnote 1) instead of re-searching at each
     # of the num_timesteps steps.
     if verbose:
-        print(f"Selecting nearest-neighbor subsets for {N} targets...", flush=True)
+        db_size = X_obs.shape[0]
+        db_note = f" (subsample_ratio={subsample_ratio} -> ~{int(db_size * subsample_ratio)} actually searched)" if subsample_ratio < 1.0 else ""
+        print(f"Selecting nearest-neighbor subsets for {N} targets against a "
+              f"{db_size}-point database{db_note}...", flush=True)
         start_time = time.time()
 
     dX_sub, log_weight_spatial = select_neighbor_subset(
@@ -420,6 +423,19 @@ def generate_labeled_data(trainX, trainY, config, vmin, vmax):
     generated independently for a fixed Delta t); multi-step rollout only
     happens at inference time via SDEResNet.predict(), which draws a fresh z
     at every step. Training with multi_steps > 1 is therefore not supported.
+
+    config["label_fraction"] (default 1.0) decouples the score estimator's
+    neighbor database from the labeled training set, matching the paper's own
+    setup: it always searches neighbors over the *full* D_obs = (trainX, trainY)
+    for an accurate, well-populated score, but only runs the (expensive, K-step)
+    reverse ODE for a random label_fraction of those points -- e.g. the paper
+    uses H=15,000-200,000 trajectories (millions of D_obs pairs) but randomly
+    labels only ~50,000-60,000 of them, since labeling cost scales with the
+    number of *targets*, not the database size, and a random subset is already
+    enough to train the flow-map network. This is also the fix for the
+    multi-D memory blowup: dX_sub et al. scale with the number of targets, so
+    shrinking label_fraction (not train_fraction, which would also shrink the
+    neighbor database and degrade the score) is the right lever.
     """
     if config.get("multi_steps", 1) != 1:
         raise ValueError(
@@ -445,6 +461,22 @@ def generate_labeled_data(trainX, trainY, config, vmin, vmax):
     Y = torch.as_tensor(trainY, dtype=dtype, device=device)
     if Y.dim() == X.dim() + 1:
         Y = Y.squeeze(-1)
+
+    # Random label subset (see docstring): X/Y above remain the FULL neighbor
+    # database (D_obs) passed to extract_latents as X_obs/Y_obs; X_targets is
+    # only the (label_fraction-sized) subset the reverse ODE actually solves
+    # for, and the one the final (x, z, y) triples below are built from.
+    label_fraction = float(config.get("label_fraction", 1.0))
+    N_obs = X.shape[0]
+    if label_fraction < 1.0:
+        n_labels = max(1, int(round(label_fraction * N_obs)))
+        label_idx = torch.randperm(N_obs, device=X.device)[:n_labels]
+        X_targets = X[label_idx]
+        print(f"Labeling a random {n_labels}/{N_obs} (label_fraction={label_fraction}) subset of "
+              f"the loaded data; the full {N_obs} points remain the neighbor-search database.")
+    else:
+        X_targets = X
+
     save_path = config.get("save_path", "./sde_diffusion_output")
     latent_file = os.path.join(save_path, "extracted_latents.pt")
 
@@ -453,7 +485,7 @@ def generate_labeled_data(trainX, trainY, config, vmin, vmax):
         Z1, Z0 = torch.load(latent_file, map_location=device)
     else:
         print("Extracting latent variables using the training-free reverse ODE (Algorithm 3.1)...")
-        Z1, Z0 = extract_latents(X, X, Y, config, verbose=True)
+        Z1, Z0 = extract_latents(X_targets, X, Y, config, verbose=True)
 
         print(f"Saving extracted latents to {latent_file} to speed up future runs...")
         os.makedirs(save_path, exist_ok=True)
@@ -461,18 +493,18 @@ def generate_labeled_data(trainX, trainY, config, vmin, vmax):
 
     np_dtype = _NUMPY_DTYPE[config["dtype"]]
 
-    # Normalization happens here, as late as possible in the pipeline: X and
-    # (X + Z0) are physical-state quantities and are normalized to [-1,1]
-    # using the same bounds the raw training data was measured against; Z1
-    # (noise) is standard normal already and is left untouched.
-    X_norm = normalize_state(X, vmin, vmax)
+    # Normalization happens here, as late as possible in the pipeline: X_targets
+    # and (X_targets + Z0) are physical-state quantities and are normalized to
+    # [-1,1] using the same bounds the raw training data was measured against;
+    # Z1 (noise) is standard normal already and is left untouched.
+    X_norm = normalize_state(X_targets, vmin, vmax)
 
     # Flattened [normalize(x), z] condition, matching SDEResNet's expected input layout.
     trainX_augmented = torch.cat([X_norm, Z1], dim=-1).cpu().numpy().astype(np_dtype)
 
     # Synthetic label y = x + z_0 (Eq. 3.25), normalized like x above, reshaped
     # to (N, output_dim, multi_steps=1) to match due.datasets.ode/due.models.ODE's convention.
-    trainY_synthetic = normalize_state(X + Z0, vmin, vmax).cpu().numpy().astype(np_dtype)
+    trainY_synthetic = normalize_state(X_targets + Z0, vmin, vmax).cpu().numpy().astype(np_dtype)
     trainY_synthetic = np.expand_dims(trainY_synthetic, axis=-1)
 
     print(f"Augmented input shape: {trainX_augmented.shape} ([normalize(x), z])")

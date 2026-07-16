@@ -122,8 +122,14 @@ def main():
               f"there, expect a temporary loss spike in the first few epochs. Pass "
               f"--learning-rate with a much smaller value to avoid it.")
 
-    print(f"Loading model from {args.model} ...")
-    mynet = torch.load(args.model, weights_only=False)
+    # Accept either the checkpoint file itself or the experiment folder that
+    # contains it (due.models.ODE saves the checkpoint as "<save_path>/model"),
+    # so `--model results/Foo` and `--model results/Foo/model` both work.
+    model_path = args.model
+    if os.path.isdir(model_path):
+        model_path = os.path.join(model_path, "model")
+    print(f"Loading model from {model_path} ...")
+    mynet = torch.load(model_path, weights_only=False)
     # The model's OWN vmin/vmax (learned from whatever data it was originally trained
     # on) are reused below, not recomputed from the freshly loaded data -- the network's
     # weights and residual connection are calibrated to that specific normalization, so
@@ -208,11 +214,16 @@ def main():
     model.train()
     model.save_hist()
 
-    # Predict + evaluate, exactly like the standalone examples.
+    # Predict + evaluate, exactly like the standalone examples. 1D spaghetti plots
+    # are uninformative once the state is multi-dimensional, so dispatch to the
+    # phase-space/marginal/spectral evaluation for problem_dim > 1 (see run_experiments.py).
     steps_to_predict = test_set.shape[-1] - (conf_data.get("memory", 0) + 1)
     pred = mynet.predict(test_set[..., :conf_data.get("memory", 0) + 1], steps_to_predict,
                           device=conf_train["device"])
-    own_models.utils.sde_evaluate(pred, test_set, save_path=save_path, dt=conf_data.get("dt", 0.01))
+    if pred.shape[1] > 1:
+        own_models.utils.sde_evaluate_multidim(pred, test_set, save_path=save_path, dt=conf_data.get("dt", 0.01))
+    else:
+        own_models.utils.sde_evaluate(pred, test_set, save_path=save_path, dt=conf_data.get("dt", 0.01))
 
     print(f"\nContinued-training outputs written to: {save_path}")
 
