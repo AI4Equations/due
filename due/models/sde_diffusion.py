@@ -61,7 +61,7 @@ def select_neighbor_subset(x_targets, X_obs, dX_obs, nu, chunk_size=1000,
         dX_obs_flat = dX_obs_flat[perm]
 
     M = X_obs_flat.shape[0]
-    subset_size = max(int(0.01 * M), 100)
+    subset_size = max(int(0.01 * M), 10000)
     subset_size = min(subset_size, M)
     if max_subset_size is not None:
         subset_size = min(subset_size, max_subset_size)
@@ -216,13 +216,18 @@ def extract_latents(x_targets, X_obs, Y_obs, config, verbose=True):
     device = x_targets.device
     X_obs = X_obs.to(device)
     Y_obs = Y_obs.to(device)
+    output_dim = Y_obs.shape[-1]
+    x_last_obs = X_obs[..., -output_dim:]
     # increment_scale improves conditioning near tau=0; converted back to
     # physical units before returning below.
-    dX_obs = (Y_obs - X_obs) * increment_scale
+    dX_obs = (Y_obs - x_last_obs) * increment_scale
 
     N = x_targets.shape[0]
 
-    z_initial = torch.randn_like(x_targets)
+    # z carries the increment's dimension (output_dim), NOT the possibly larger
+    # delay-vector dimension of x_targets.
+    z_initial = torch.randn(x_targets.shape[:-1] + (output_dim,),
+                            dtype=x_targets.dtype, device=device)
     z_current = z_initial.clone()
 
     if verbose:
@@ -329,6 +334,11 @@ def generate_labeled_data(trainX, trainY, config, vmin, vmax):
     using the same vmin/vmax the data was measured against
     (see due.datasets.sde.sde_dataset.load()).
 
+    Supports delay embedding (config memory > 0): each condition x_j is then a
+    stacked vector [x_{t-m}, ..., x_t]; neighbors are searched in that full
+    delay space (so recent history selects them), while the increment and the
+    label stay in the single most-recent-block space (the map x_t -> x_{t+dt}).
+
     trainX, trainY: raw (unnormalized) arrays from sde_dataset.load().
     config: merged training/diffusion config (see due.utils.read_sde_config);
         config["label_fraction"] (default 1.0) searches neighbors over the
@@ -391,11 +401,19 @@ def generate_labeled_data(trainX, trainY, config, vmin, vmax):
 
     np_dtype = _NUMPY_DTYPE[config["dtype"]]
 
-    X_norm = normalize_state(X_targets, vmin, vmax)
+    output_dim = Z0.shape[-1]
+    n_blocks = X_targets.shape[-1] // output_dim
+    vmin_flat = np.asarray(vmin).reshape(-1)
+    vmax_flat = np.asarray(vmax).reshape(-1)
+    vmin_aug = np.tile(vmin_flat, n_blocks)
+    vmax_aug = np.tile(vmax_flat, n_blocks)
+
+    X_norm = normalize_state(X_targets, vmin_aug, vmax_aug)
 
     trainX_augmented = torch.cat([X_norm, Z1], dim=-1).cpu().numpy().astype(np_dtype)
 
-    trainY_synthetic = normalize_state(X_targets + Z0, vmin, vmax).cpu().numpy().astype(np_dtype)
+    x_last = X_targets[..., -output_dim:]
+    trainY_synthetic = normalize_state(x_last + Z0, vmin, vmax).cpu().numpy().astype(np_dtype)
     trainY_synthetic = np.expand_dims(trainY_synthetic, axis=-1)
 
     print(f"Augmented input shape: {trainX_augmented.shape} ([normalize(x), z])")
