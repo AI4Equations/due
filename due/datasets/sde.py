@@ -5,10 +5,9 @@ from scipy.io import loadmat
 class sde_dataset():
     """
     A class representing an SDE dataset, matching the API of due.datasets.ode.ode_dataset
-    (same load()/normalize() contract) but tailored to stochastic flow-map learning:
-    trainY is the raw observed increment X_{t+dt}, not yet
-    the diffusion-generated label -- that label is produced later by
-    due.models.sde_diffusion.generate_labeled_data().
+    (same load() contract) but tailored to stochastic flow-map learning:
+    trainY is the raw observed X_{t+dt}, not yet the diffusion-generated label -- 
+    that label is produced later by due.models.sde_diffusion.generate_labeled_data().
 
     Args:
         config (dict): the "data" config block (see due.utils.read_config).
@@ -25,7 +24,8 @@ class sde_dataset():
     def __init__(self, config):
         self.problem_dim = config["problem_dim"]
         self.memory_steps = config.get("memory", 0)
-        self.multi_steps = config.get("multi_steps", 1)
+        self.multi_steps = config.get("multi_steps", 0)
+        self.prediction_steps = self.multi_steps + 1
         self.nbursts = config["nbursts"]
         self.dtype = config["dtype"]
         self.raw_latents = config.get("raw_latents", False)
@@ -67,16 +67,21 @@ class sde_dataset():
 
         print(f"SDE Dataset loaded: {N} trajectories, {self.problem_dim} variables, {T} time steps")
 
-        max_windows = T - self.multi_steps - self.memory_steps - 1
+        slice_len = self.memory_steps + 1 + self.prediction_steps
+        max_windows = T - slice_len + 1
+        if max_windows <= 0:
+            raise ValueError(
+                f"Trajectory length T={T} is too short for "
+                f"memory={self.memory_steps}, multi_steps={self.multi_steps}."
+            )
         if self.nbursts > max_windows:
             self.nbursts = max_windows
 
-        slice_len = self.memory_steps + self.multi_steps + 1
         target = np.zeros((N * self.nbursts, self.problem_dim, slice_len))
 
         if self.raw_latents and "latents" in data_dict:
             latents = data_dict["latents"]
-            target_latents = np.zeros((N * self.nbursts, self.problem_dim, self.multi_steps))
+            target_latents = np.zeros((N * self.nbursts, self.problem_dim, self.prediction_steps))
 
         for i in range(N):
             inits = np.random.choice(max_windows, self.nbursts, replace=False)
@@ -85,7 +90,7 @@ class sde_dataset():
             target[i * self.nbursts:(i + 1) * self.nbursts, ...] = selected
 
             if self.raw_latents and "latents" in data_dict:
-                selected_z = np.asarray([latents[i, :, init + self.memory_steps + 1 : init + slice_len + 1] for init in inits])
+                selected_z = np.asarray([latents[i, :, init + self.memory_steps + 1 : init + slice_len] for init in inits])
                 target_latents[i * self.nbursts:(i + 1) * self.nbursts, ...] = selected_z
 
         print(f"Dataset regrouped into {target.shape[0]} training bursts.")
@@ -97,14 +102,14 @@ class sde_dataset():
         trainX = target[..., :self.memory_steps + 1].transpose(0, 2, 1).reshape(target.shape[0], -1)
         trainY = target[..., self.memory_steps + 1:]
 
-        if self.multi_steps == 1:
+        if self.prediction_steps == 1:
             trainY = trainY.squeeze(-1)
 
         print(f"Final Input (X) shape: {trainX.shape}")
         print(f"Final Target (Y) shape: {trainY.shape}")
 
         if self.raw_latents and "latents" in data_dict:
-            if self.multi_steps == 1:
+            if self.prediction_steps == 1:
                 z_target = target_latents.squeeze(-1)
             else:
                 z_target = target_latents.reshape(target_latents.shape[0], -1)

@@ -312,42 +312,23 @@ class SDEResNet(affine):
     def __init__(self, vmin, vmax, config):
         super().__init__(vmin, vmax, config)
 
+        mlp_config = dict(config)
+        mlp_config["memory"] = config["memory"] + 1
+        self.mlp = mlp(mlp_config)
+
         self.depth = config["depth"]
         self.width = config["width"]
         self.activation = get_activation(config["activation"])
-
-        # The network additionally consumes a noise vector z of size output_dim.
-        mlp_input_dim = self.input_dim + self.output_dim
-
-        self.layers = torch.nn.ModuleList()
-        if self.dtype == "double":
-            for i in range(self.depth):
-                in_dim = mlp_input_dim if i == 0 else self.width
-                self.layers.append(torch.nn.Linear(in_dim, self.width).double())
-            self.layers.append(torch.nn.Linear(self.width, self.output_dim).double())
-        elif self.dtype == "single":
-            for i in range(self.depth):
-                in_dim = mlp_input_dim if i == 0 else self.width
-                self.layers.append(torch.nn.Linear(in_dim, self.width))
-            self.layers.append(torch.nn.Linear(self.width, self.output_dim))
-        else:
-            print("self.dtype error. The self.dtype must be either single or double.")
-            exit()
 
     def forward(self, xz):
         """
         xz: (..., input_dim + output_dim), the flattened concatenation of the
         physical-state condition x and the noise draw z.
         """
-        xz = xz.to(self.layers[0].weight.dtype)
+        xz = xz.to(self.mlp.layers[0].weight.dtype)
         x_last = xz[..., self.input_dim - self.output_dim:self.input_dim]
 
-        h = xz
-        for l in self.layers[:-1]:
-            h = self.activation(l(h))
-        h = self.layers[-1](h)
-
-        return h + x_last
+        return self.mlp(xz) + x_last
 
     def predict(self, x, steps, device):
         """
@@ -366,7 +347,7 @@ class SDEResNet(affine):
 
         xx = torch.from_numpy(x)
         xx = 2 * (xx - 0.5 * (self.vmax + self.vmin)) / (self.vmax - self.vmin)
-        xx = xx.to(device).to(self.layers[0].weight.dtype)
+        xx = xx.to(device).to(self.mlp.layers[0].weight.dtype)
 
         yy = torch.zeros(xx.shape[0], self.output_dim, steps + self.memory + 1, device=device, dtype=xx.dtype)
         yy[..., :self.memory + 1] = xx

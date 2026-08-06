@@ -474,6 +474,7 @@ def read_sde_config(config_path):
     due.models.sde_diffusion.generate_labeled_data.
     """
     conf_data, conf_net, conf_train = read_config(config_path)
+    conf_train["multi_steps"] = conf_data.get("multi_steps", 0)
 
     raw = safe_load(Path(config_path).read_text())
     conf_train.update(raw.get("diffusion", {}))

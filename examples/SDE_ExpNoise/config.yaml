@@ -6,7 +6,7 @@ data:
     problem_type: sde
     nbursts: 100 # number of (x, dx) bursts sampled per trajectory
     memory: 0 # SDEs are Markovian; only the current state X_t is needed
-    multi_steps: 1 # the flow map only defines a single-step transition
+    multi_steps: 0 # the flow map only defines a single-step transition
     problem_dim: 1
     dt: 0.01 # Delta t used when the dataset was generated (for plotting)
 

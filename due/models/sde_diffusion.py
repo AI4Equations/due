@@ -351,13 +351,11 @@ def generate_labeled_data(trainX, trainY, config, vmin, vmax):
         trainX_augmented: (N, input_dim + output_dim), flattened [normalize(x), z]
         trainY_synthetic: (N, output_dim, 1), normalize(x + z0)
     """
-    if config.get("multi_steps", 1) != 1:
+    if config.get("multi_steps", 0) != 0:
         raise ValueError(
             "The training-free conditional diffusion model only supports "
-            "single-step supervised training (multi_steps=1): each label is "
-            "generated independently by the reverse ODE for a fixed Delta t. "
-            "Multi-step rollout happens only at inference via "
-            "SDEResNet.predict(), not during training."
+            "single-step supervised training (multi_steps=0). "
+            "Multi-step rollout happens during inference."
         )
 
     # Optional CPU thread-count override; unset avoids oversubscribing shared machines.
