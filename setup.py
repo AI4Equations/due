@@ -14,7 +14,7 @@ setup(
     ],
     packages=find_packages(),
     install_requires=[
-        'torch==2.0.1',
+        'torch',
         'pyyaml',
         'numpy==1.26.4',
         'scipy',

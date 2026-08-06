@@ -1,13 +1,13 @@
 """
-Standalone end-to-end example for the 1D Ornstein-Uhlenbeck process:
-load data -> generate labeled data via the training-free reverse ODE ->
-train the flow-map network -> roll out predictions and evaluate them ->
-compare the model's effective drift/diffusion against the exact closed-form
-coefficients. All settings come from config.yaml; this script takes no
-other input.
+Standalone end-to-end example for the 1D SDE with exponentially-distributed
+noise: load data -> generate labeled data via the training-free reverse
+ODE -> train the flow-map network -> roll out predictions and evaluate
+them -> compare the model's effective drift/diffusion against the exact
+closed-form coefficients. All settings come from config.yaml; this script
+takes no other input.
 
 Run from this directory (matches every other example in examples/):
-    python OU.py
+    python Exponential_Noise.py
 """
 
 import os
@@ -24,11 +24,13 @@ if _REPO_ROOT not in sys.path:
 
 import due
 
-# Exact closed-form drift a(x) and diffusion b(x) for dX = theta(mu-X)dt + sigma dW,
-# matching generate_1dOU.py's theta=1.0, mu=1.2, sigma=0.3.
-THETA, MU, SIGMA = 1.0, 1.2, 0.3
+# Exact closed-form drift a(x) and diffusion b(x) for dX = mu*X dt + sigma*sqrt(dt)*eta_t,
+# eta_t ~ Exp(1), matching generate_1d_exponential_noise.py's mu=-2, sigma=0.1.
+# a(x) includes +sigma/sqrt(dt) because Exp(1) has mean 1, not 0, so the raw
+# increment carries a constant offset that a zero-mean noise term wouldn't.
+MU, SIGMA = -2.0, 0.1
 def a_true(x, dt):
-    return THETA * (MU - x)
+    return MU * x + SIGMA / np.sqrt(dt)
 def b_true(x, dt):
     return np.full_like(x, SIGMA)
 
@@ -77,7 +79,7 @@ def plot_drift_diffusion(net, dt, save_path, n_samples, n_grid,
     if diffusion_ylim is not None:
         axes[1].set_ylim(diffusion_ylim[0], diffusion_ylim[1])
 
-    fig.suptitle("dX = theta(mu - X)dt + sigma dW,  theta=1.0, mu=1.2, sigma=0.3", fontsize=9)
+    fig.suptitle("dX = mu*X dt + sigma*sqrt(dt)*eta_t,  eta~Exp(1), mu=-2.0, sigma=0.1", fontsize=9)
     plt.tight_layout()
     out_path = os.path.join(save_path, "drift_diffusion.png")
     plt.savefig(out_path, dpi=150)
@@ -107,7 +109,7 @@ def main():
         trainX, trainY, conf_train, vmin, vmax)
 
     # Build + train the flow-map network
-    mynet = due.networks.sde.SDEResNet(vmin, vmax, conf_net)
+    mynet = due.networks.fcn.SDEResNet(vmin, vmax, conf_net)
     model = due.models.ODE(trainX_aug, trainY_synth, mynet, conf_train)
     model.train()
     model.save_hist()

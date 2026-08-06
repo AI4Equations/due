@@ -291,6 +291,97 @@ class dual_osgnet(osgnet):
         y2 = self.osgnet2(x)
         
         return p[:,:1]*y1 + p[:,1:2]*y2
+    
+class SDEResNet(affine):
+    """
+    Conditional generative network G_theta(x, z) approximating the stochastic
+    flow map F_dt(x, omega): given the current state x and a fresh Gaussian
+    noise draw z, predicts the state one step (Delta t) later.
+
+    Unlike due.networks.fcn.resnet (which maps x -> x + mlp(x)), this network's
+    input is the concatenation of the physical state x (with its memory
+    embedding, if any) and a standard normal draw z, flattened along the last
+    axis: [x, z] with shape (..., input_dim + output_dim). The residual
+    connection only adds back the physical state, never the noise:
+    G_theta(x, z) = mlp([x, z]) + x.
+
+    Built on due.networks.fcn.affine, constructed and trained like any other
+    DUE network: SDEResNet(vmin, vmax, config), then due.models.ODE(...).
+    """
+
+    def __init__(self, vmin, vmax, config):
+        super().__init__(vmin, vmax, config)
+
+        self.depth = config["depth"]
+        self.width = config["width"]
+        self.activation = get_activation(config["activation"])
+
+        # The network additionally consumes a noise vector z of size output_dim.
+        mlp_input_dim = self.input_dim + self.output_dim
+
+        self.layers = torch.nn.ModuleList()
+        if self.dtype == "double":
+            for i in range(self.depth):
+                in_dim = mlp_input_dim if i == 0 else self.width
+                self.layers.append(torch.nn.Linear(in_dim, self.width).double())
+            self.layers.append(torch.nn.Linear(self.width, self.output_dim).double())
+        elif self.dtype == "single":
+            for i in range(self.depth):
+                in_dim = mlp_input_dim if i == 0 else self.width
+                self.layers.append(torch.nn.Linear(in_dim, self.width))
+            self.layers.append(torch.nn.Linear(self.width, self.output_dim))
+        else:
+            print("self.dtype error. The self.dtype must be either single or double.")
+            exit()
+
+    def forward(self, xz):
+        """
+        xz: (..., input_dim + output_dim), the flattened concatenation of the
+        physical-state condition x and the noise draw z.
+        """
+        xz = xz.to(self.layers[0].weight.dtype)
+        x_last = xz[..., self.input_dim - self.output_dim:self.input_dim]
+
+        h = xz
+        for l in self.layers[:-1]:
+            h = self.activation(l(h))
+        h = self.layers[-1](h)
+
+        return h + x_last
+
+    def predict(self, x, steps, device):
+        """
+        Autoregressive long-term trajectory generation (not used for training).
+
+        x : unnormalized initial conditions. Numpy array (N, output_dim, memory+1)
+        output: unnormalized generated trajectories. Numpy array (N, output_dim, steps+memory+1)
+
+        A fresh z ~ N(0, I) is drawn and concatenated with the current
+        physical state at every step, since the stochastic flow map has a
+        genuinely random forward evolution.
+        """
+        self.to(device)
+        assert x.shape[1] == self.output_dim
+        assert x.shape[2] == self.memory + 1
+
+        xx = torch.from_numpy(x)
+        xx = 2 * (xx - 0.5 * (self.vmax + self.vmin)) / (self.vmax - self.vmin)
+        xx = xx.to(device).to(self.layers[0].weight.dtype)
+
+        yy = torch.zeros(xx.shape[0], self.output_dim, steps + self.memory + 1, device=device, dtype=xx.dtype)
+        yy[..., :self.memory + 1] = xx
+        self.eval()
+        with torch.no_grad():
+            for t in range(steps):
+                x_in = yy[..., t:self.memory + 1 + t].permute(0, 2, 1).reshape(-1, self.input_dim)
+                z = torch.randn(x_in.shape[0], self.output_dim, device=device, dtype=x_in.dtype)
+                xz = torch.cat([x_in, z], dim=-1)
+                yy[..., self.memory + 1 + t] = self.forward(xz)
+
+        yy = yy.cpu()
+        yy = yy * 0.5 * (self.vmax - self.vmin) + 0.5 * (self.vmax + self.vmin)
+
+        return yy.numpy()
         
         
 
